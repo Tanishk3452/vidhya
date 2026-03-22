@@ -1,0 +1,33 @@
+# NCERT Physics Class 11 - Chapter 5: Laws of Motion
+
+## 5.1 Introduction
+In the preceding Chapter, our concern was to describe the motion of a particle in space quantitatively. We saw that uniform motion needs the concept of velocity alone whereas non-uniform motion requires the concept of acceleration.
+
+## 5.2 Aristotle's Fallacy
+The Greek thinker, Aristotle (384 B.C– 322 B.C.), held the view that if a body is moving, something external is required to keep it moving. According to this view, an external force is required to keep a body in motion.
+
+## 5.3 The Law of Inertia
+Galileo studied motion of objects on an inclined plane. Objects (i) moving down an inclined plane accelerate, while (ii) moving up retard. 
+Newton built on Galileo's ideas and laid the foundation of mechanics in terms of three laws of motion.
+Newton's First Law of Motion: Every body continues to be in its state of rest or of uniform motion in a straight line unless compelled by some external force to act otherwise. The state of rest or uniform linear motion both imply zero acceleration.
+
+## 5.4 Newton's Second Law of Motion
+The first law refers to the simple case when the net external force on a body is zero. The second law of motion refers to the general situation when there is a net external force acting on the body. 
+The momentum, p of a body is defined to be the product of its mass m and velocity v, and is denoted by p = mv.
+Newton's Second Law of Motion: The rate of change of momentum of a body is directly proportional to the applied force and takes place in the direction in which the force acts. F = dp/dt = m(dv/dt) = ma.
+
+## 5.5 Newton's Third Law of Motion
+What is the origin of the external force on the body? What agency provides the external force? The answer is provided by the third law.
+Newton's Third Law of Motion: To every action, there is always an equal and opposite reaction. Forces always occur in pairs. Force on a body A by B is equal and opposite to the force on the body B by A. F_AB = - F_BA.
+
+## 5.6 Conservation of Momentum
+The second and third laws of motion lead to an important consequence: the law of conservation of momentum.
+When a bullet is fired from a gun, if the force on the bullet by the gun is F, the force on the gun by the bullet is -F, according to the third law. The total momentum of an isolated system of interacting particles is conserved.
+
+## 5.7 Equilibrium of a Particle
+Equilibrium of a particle in mechanics refers to the situation when the net external force on the particle is zero. According to the first law, this means that, the particle is either at rest or in uniform motion.
+
+## 5.8 Common Forces in Mechanics
+In mechanics, we encounter several kinds of forces. The gravitational force is pervasive. Every object on the earth experiences the force of gravity due to the earth.
+Friction: When a body moves or tends to move over the surface of another body, a force comes into play which acts parallel to the surface of contact and opposes the relative motion. This opposing force is called friction.
+Static friction fs is less than or equal to μs N. Kinetic friction fk = μk N, where μs and μk are coefficients of static and kinetic friction respectively.
