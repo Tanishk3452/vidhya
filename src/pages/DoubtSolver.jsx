@@ -138,7 +138,7 @@ export default function DoubtSolver() {
 
       {/* TEXT TAB */}
       {tab === 'text' && (
-        <div className="grid-2">
+        <div style={{ maxWidth:'900px', margin:'0 auto' }}>
           <div>
             <div className="chat-container">
               <div className="chat-messages" id="chat-messages">
@@ -197,40 +197,6 @@ export default function DoubtSolver() {
                   </button>
                 ))}
               </div>
-            </div>
-          </div>
-
-          {/* AI Info Panel */}
-          <div style={{ display:'flex', flexDirection:'column', gap:'1rem' }}>
-            <div className="card" style={{ padding:'1.25rem' }}>
-              <h3 style={{ fontSize:'1rem', fontWeight:'700', marginBottom:'1rem' }}>🤖 AI Tutor Capabilities</h3>
-              {[
-                { icon:'📐', cap:'Step-by-step math solutions' },
-                { icon:'⚛️', cap:'Physics concept explanations' },
-                { icon:'🧪', cap:'Chemistry reaction mechanisms' },
-                { icon:'📚', cap:'UPSC current affairs analysis' },
-                { icon:'🗺️', cap:'Diagram-based explanations' },
-                { icon:'💡', cap:'Memory tricks & shortcuts' },
-              ].map(({ icon, cap }) => (
-                <div key={cap} style={{ display:'flex', gap:'0.75rem', alignItems:'center', marginBottom:'0.6rem' }}>
-                  <span>{icon}</span>
-                  <span style={{ fontSize:'0.85rem', color:'var(--text-secondary)' }}>{cap}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="card" style={{ padding:'1.25rem', background:'rgba(0,212,170,0.05)', borderColor:'rgba(0,212,170,0.2)' }}>
-              <div style={{ fontSize:'0.82rem', fontWeight:'700', color:'var(--secondary)', marginBottom:'0.5rem' }}>💬 Today's Stats</div>
-              {[
-                { label:'Doubts Solved', val:'23' },
-                { label:'Avg Response Time', val:'1.2s' },
-                { label:'Accuracy Rate', val:'98.4%' },
-              ].map(({ label, val }) => (
-                <div key={label} style={{ display:'flex', justifyContent:'space-between', fontSize:'0.85rem', marginBottom:'0.35rem' }}>
-                  <span style={{ color:'var(--text-muted)' }}>{label}</span>
-                  <span style={{ fontWeight:'700' }}>{val}</span>
-                </div>
-              ))}
             </div>
           </div>
         </div>
