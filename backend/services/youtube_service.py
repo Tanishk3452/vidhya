@@ -12,50 +12,67 @@ class YouTubeService:
         # Robust regex to extract YouTube ID from standard, shortened, or embed URLs
         match = re.search(r"(?:v=|\/)([0-9A-Za-z_-]{11}).*", url)
         return match.group(1) if match else None
-
+    
     def get_transcript(self, video_id: str) -> str:
         try:
-            import traceback, json, re, html
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-            response = httpx.get(f"https://www.youtube.com/watch?v={video_id}", headers=headers, follow_redirects=True)
-            page_html = response.text
+            from youtube_transcript_api import YouTubeTranscriptApi
+
+            ytt = YouTubeTranscriptApi()
             
-            # Dangerously beautiful extraction: Directly scan the HTML for the backend API endpoints
-            # This completely bypasses the fragile ytInitialPlayerResponse JSON decoding DOM!
-            # We use `[\\/]+` because YouTube often escapes forward slashes in JSON as `\/`
-            urls = re.findall(r'"baseUrl"\s*:\s*"([^"]+api[\\/]+timedtext[^"]+)"', page_html)
-            
-            if not urls:
-                return "Error: No caption tracks found for this video. The video might not have English subtitles enabled."
-                
-            # Safely decode the unicode escaped \u0026 parameters back into valid URL ampersands &
-            track_urls = [json.loads(f'"{u}"') for u in urls]
-            
-            # Prefer explicitly generated English tracks (lang=en), otherwise take the first available
-            en_urls = [u for u in track_urls if 'lang=en' in u]
-            track_url = en_urls[0] if en_urls else track_urls[0]
-            
-            # Fetch the parsed XML transcript payload
-            xml_data = httpx.get(track_url, headers=headers).text
-            
-            if not xml_data.strip():
-                return "Error: YouTube returned an empty transcript payload for this video."
-            
-            # Traverse XML nodes safely and pull text blocks
-            root = ET.fromstring(xml_data)
-            transcript_words = []
-            for child in root.iter():
-                if child.text and child.text.strip():
-                    transcript_words.append(child.text.strip())
+            # Try English first, then Hindi, then just grab whatever is available
+            try:
+                fetched = ytt.fetch(video_id, languages=['en', 'en-IN', 'en-GB', 'hi', 'hi-IN'])
+            except Exception:
+                # Last resort — fetch whatever language is available
+                transcript_list = ytt.list(video_id)
+                first_available = next(iter(transcript_list), None)
+                if not first_available:
+                    return "Error: No captions found for this video."
+                fetched = first_available.fetch()
+
+            transcript_words = [t.text for t in fetched if t.text.strip()]
             transcript = " ".join(transcript_words)
-            
-            # Flush legacy HTML entities (like &#39; -> ')
             return html.unescape(transcript)
-            
-        except xml.etree.ElementTree.ParseError:
-            return "Error: Failed to parse the XML transcript file. YouTube might have changed their format."
+
         except Exception as e:
-            return f"Error manually scraping transcript: {e}\nTraceback: {traceback.format_exc()}"
+            return f"Error: Could not retrieve transcript. ({type(e).__name__}: {e})"
+
+    # def get_transcript(self, video_id: str) -> str:
+        try:
+            from youtube_transcript_api import YouTubeTranscriptApi
+
+            # New API (v1.0+) — use fetch() instead of get_transcript()
+            ytt = YouTubeTranscriptApi()
+            fetched = ytt.fetch(video_id)
+        
+            transcript_words = [t.text for t in fetched if t.text.strip()]
+            transcript = " ".join(transcript_words)
+            return html.unescape(transcript)
+
+        except Exception as e:
+            return f"Error: Could not retrieve transcript. The video may not have captions enabled or may be age-restricted. ({type(e).__name__}: {e})"
+
+    # def get_transcript(self, video_id: str) -> str:
+    #     try:
+    #         import html
+    #         import traceback
+    #         from youtube_transcript_api import YouTubeTranscriptApi
+            
+    #         # Fetch the transcript directly using the robust official library, falling back across common languages
+    #         transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['en', 'en-IN', 'en-GB', 'hi'])
+            
+    #         if not transcript_list:
+    #             return "Error: YouTube returned an empty transcript payload for this video."
+            
+    #         # Extract and join just the text segments
+    #         transcript_words = [t['text'] for t in transcript_list if t['text'].strip()]
+    #         transcript = " ".join(transcript_words)
+            
+    #         # Flush legacy HTML entities (like &#39; -> ')
+    #         return html.unescape(transcript)
+            
+    #     except Exception as e:
+    #         return f"Error: Could not retrieve transcript. The video may not have captions enabled or may be age-restricted. ({type(e).__name__})"
 
     def process_video(self, url: str) -> dict:
         video_id = self.extract_video_id(url)
@@ -70,26 +87,38 @@ class YouTubeService:
         safe_transcript = transcript[:25000] 
             
         prompt = (
-            "You are an expert AI Study Assistant. I am providing you with the transcript of an educational video (usually a lecture or tutorial).\n"
-            "Please analyze it and generate the following structured output:\n\n"
-            "### 1. Concise Summary\n"
-            "(A fast 2-3 paragraph overview of the exact concepts taught in the video)\n\n"
-            "### 2. Structured Notes\n"
-            "(Highly detailed notes using markdown, headers, bullet points, and **bolding** key terms. Include formulas or key definitions mentioned.)\n\n"
-            "### 3. Flashcards for Revision\n"
-            "(Create 5 Question and Answer pairs based on the most important concepts to help the student test their memory.)\n\n"
-            f"--- VIDEO TRANSCRIPT ---\n{safe_transcript}\n--- END TRANSCRIPT ---\n"
+            "You are an expert AI Educational Video Analyst.\n"
+            "Analyze this YouTube transcript and output a pure JSON object (no markdown formatting outside of the specified field, no code fences, just raw JSON) with the following structure:\n"
+            "{\n"
+            '  "summary": "A 2-3 paragraph highly insightful overview of the entire video. Focus on the core thesis and main arguments.",\n'
+            '  "key_concepts": [{"title": "Concept 1", "explanation": "Brief 1-sentence explanation..."}],\n'
+            '  "notes_markdown": "Highly detailed markdown notes with ## Headers, bullet points, and **bold** terms. Make it read like a premium Notion document.",\n'
+            '  "flashcards": [{"q": "Question 1?", "a": "Answer 1!"}, {"q": "Question 2?", "a": "Answer 2!"}]\n'
+            "}\n"
+            "Ensure the flashcards cover the most counter-intuitive or highly testable points from the lecture. Generate at least 6 flashcards.\n\n"
+            f"--- VIDEO TRANSCRIPT ---\n{safe_transcript}\n"
         )
         
         # We reuse the main AI service core generation
-        result = ai_service._call_gemini(prompt)
+        raw_result = ai_service._call_gemini(prompt)
         
-        if not result:
+        if not raw_result:
             return {"error": "Failed to generate AI notes from transcript. AI API might be unavailable."}
+            
+        try:
+            # Clean up potential markdown fences
+            raw_result = raw_result.strip()
+            if raw_result.startswith("```json"):
+                raw_result = raw_result[7:-3].strip()
+            elif raw_result.startswith("```"):
+                raw_result = raw_result[3:-3].strip()
+            result_json = json.loads(raw_result)
+        except Exception as e:
+            return {"error": f"Failed to parse AI response into structured notes. Response was malformed. {e}"}
             
         return {
             "video_id": video_id,
-            "notes_markdown": result
+            **result_json
         }
 
 youtube_service = YouTubeService()

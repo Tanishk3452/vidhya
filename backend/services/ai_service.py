@@ -43,11 +43,7 @@ class AIService:
     def __init__(self):
        
         self.api_key = os.getenv("GEMINI_API_KEY", "").strip()
-      
-    # Temporary debug — remove after confirming it works
         print(f"  🔑 GEMINI_API_KEY loaded: {'YES (' + self.api_key[:8] + '...)' if self.api_key else 'NO — KEY IS EMPTY'}")
-    
-    
         self.client = None
         self.model_name = None
 
