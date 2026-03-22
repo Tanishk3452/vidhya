@@ -41,7 +41,13 @@ def detect_subject(question: str) -> str:
 
 class AIService:
     def __init__(self):
+       
         self.api_key = os.getenv("GEMINI_API_KEY", "").strip()
+      
+    # Temporary debug — remove after confirming it works
+        print(f"  🔑 GEMINI_API_KEY loaded: {'YES (' + self.api_key[:8] + '...)' if self.api_key else 'NO — KEY IS EMPTY'}")
+    
+    
         self.client = None
         self.model_name = None
 
@@ -95,6 +101,73 @@ class AIService:
         except Exception as e:
             print(f"  ⚠️  Gemini API call failed: {e}")
             return None
+
+    def solve_image_doubt(self, file_bytes: bytes, mime_type: str) -> dict:
+        import time
+        start = time.time()
+
+        if not self.client or not self.model_name:
+            return {
+                "answer": "⚠️ Gemini API key is missing or invalid. Please check your .env file.",
+                "subject": "Image OCR",
+                "topic": "Unknown",
+                "difficulty": "Medium",
+                "related_topics": [],
+                "solved_in_ms": 0,
+            }
+
+        prompt = (
+            "You are NeuroLearn AI, an expert tutor for Indian competitive exams (JEE/NEET/UPSC).\n"
+            "Analyze this uploaded image carefully.\n"
+            "1. First, extract and state the exact question or problem shown in the image.\n"
+            "2. Then solve it step-by-step with full working.\n"
+            "Format your answer with:\n"
+            "- **Question Found:** (what you extracted from the image)\n"
+            "- **Step-by-step solution** with numbered steps\n"
+            "- **Key formulas or concepts used**\n"
+            "- 💡 A relevant JEE/NEET/UPSC exam tip\n"
+            "Use **bold** for key terms."
+        )
+
+        try:
+            from google.genai import types
+
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=[
+                    types.Content(
+                        parts=[
+                            types.Part(text=prompt),
+                            types.Part(
+                                inline_data=types.Blob(
+                                    mime_type=mime_type,
+                                    data=file_bytes
+                                )
+                            )
+                        ]
+                    )
+                ]
+            )
+            answer = response.text
+
+        except Exception as e:
+            print(f"  ⚠️  Gemini Vision API failed: {e}")
+            answer = (
+                f"**Error analyzing image:** {str(e)}\n\n"
+                "Please try again with:\n"
+                "- Better lighting on the image\n"
+                "- A clearer, higher-contrast photo\n"
+                "- JPG or PNG format"
+            )
+
+        return {
+            "answer": answer,
+            "subject": "Image Question",
+            "topic": "Multimodal Input",
+            "difficulty": "Unknown",
+            "related_topics": [],
+            "solved_in_ms": int((time.time() - start) * 1000),
+        }
 
 
     # ─── Doubt Solving ──────────────────────────────────────────────────────

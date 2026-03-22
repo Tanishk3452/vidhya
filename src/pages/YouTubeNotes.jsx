@@ -5,38 +5,38 @@ import { motion } from 'framer-motion';
 
 // Basic markdown parser for displaying AI notes nicely without external libraries
 const parseMarkdown = (text) => {
-  if (!text) return null;
-  
-  return text.split('\n').map((line, idx) => {
-    // Headers
-    if (line.startsWith('### ')) {
-      return <h3 key={idx} className="text-xl font-bold mt-6 mb-3 text-indigo-400 border-b border-gray-700 pb-2">{line.replace('### ', '')}</h3>;
-    }
-    if (line.startsWith('## ')) {
-        return <h2 key={idx} className="text-2xl font-bold mt-8 mb-4 text-purple-400">{line.replace('## ', '')}</h2>;
-    }
-    if (line.startsWith('# ')) {
-        return <h1 key={idx} className="text-3xl font-extrabold mt-8 mb-4 text-white">{line.replace('# ', '')}</h1>;
-    }
-    // Lists
-    if (line.startsWith('* ') || line.startsWith('- ')) {
-      return (
-        <li key={idx} className="ml-6 mb-2 list-disc text-gray-300">
-          <span dangerouslySetInnerHTML={{ __html: formatBold(line.substring(2)) }} />
-        </li>
-      );
-    }
-    // Blockquotes
-    if (line.startsWith('> ')) {
-        return <blockquote key={idx} className="border-l-4 border-indigo-500 pl-4 py-1 my-3 text-gray-400 italic">{line.substring(2)}</blockquote>;
-    }
-    // Empty lines
-    if (line.trim() === '') {
-      return <div key={idx} className="h-3"></div>;
-    }
-    // Normal paragraph with bold parsing
-    return <p key={idx} className="mb-2 text-gray-300 leading-relaxed" dangerouslySetInnerHTML={{ __html: formatBold(line) }} />;
-  });
+    if (!text) return null;
+
+    return text.split('\n').map((line, idx) => {
+        // Headers
+        if (line.startsWith('### ')) {
+            return <h3 key={idx} className="text-xl font-bold mt-6 mb-3 text-indigo-400 border-b border-gray-700 pb-2">{line.replace('### ', '')}</h3>;
+        }
+        if (line.startsWith('## ')) {
+            return <h2 key={idx} className="text-2xl font-bold mt-8 mb-4 text-purple-400">{line.replace('## ', '')}</h2>;
+        }
+        if (line.startsWith('# ')) {
+            return <h1 key={idx} className="text-3xl font-extrabold mt-8 mb-4 text-white">{line.replace('# ', '')}</h1>;
+        }
+        // Lists
+        if (line.startsWith('* ') || line.startsWith('- ')) {
+            return (
+                <li key={idx} className="ml-6 mb-2 list-disc text-gray-300">
+                    <span dangerouslySetInnerHTML={{ __html: formatBold(line.substring(2)) }} />
+                </li>
+            );
+        }
+        // Blockquotes
+        if (line.startsWith('> ')) {
+            return <blockquote key={idx} className="border-l-4 border-indigo-500 pl-4 py-1 my-3 text-gray-400 italic">{line.substring(2)}</blockquote>;
+        }
+        // Empty lines
+        if (line.trim() === '') {
+            return <div key={idx} className="h-3"></div>;
+        }
+        // Normal paragraph with bold parsing
+        return <p key={idx} className="mb-2 text-gray-300 leading-relaxed" dangerouslySetInnerHTML={{ __html: formatBold(line) }} />;
+    });
 };
 
 const formatBold = (str) => {
@@ -85,7 +85,7 @@ export default function YouTubeNotes() {
             </div>
 
             {/* Input Box */}
-            <motion.div 
+            <motion.div
                 className="bg-gray-800/80 backdrop-blur-xl border border-gray-700/50 rounded-3xl p-6 md:p-8 shadow-2xl"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -133,7 +133,7 @@ export default function YouTubeNotes() {
             )}
 
             {result && !loading && (
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     className="grid grid-cols-1 lg:grid-cols-3 gap-6"
@@ -154,12 +154,12 @@ export default function YouTubeNotes() {
                         <div className="bg-gray-800/80 backdrop-blur-xl border border-gray-700/50 rounded-3xl p-6 shadow-2xl">
                             <h3 className="text-lg font-bold text-white mb-4">Original Source</h3>
                             <div className="aspect-video w-full rounded-xl overflow-hidden shadow-black/50 shadow-lg border border-gray-700">
-                                <iframe 
+                                <iframe
                                     className="w-full h-full"
-                                    src={`https://www.youtube.com/embed/${result.video_id}`} 
-                                    title="YouTube video player" 
-                                    frameBorder="0" 
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                    src={`https://www.youtube.com/embed/${result.video_id}`}
+                                    title="YouTube video player"
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     allowFullScreen
                                 ></iframe>
                             </div>

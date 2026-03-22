@@ -2,7 +2,7 @@
 NeuroLearn AI — Doubt Solver Router
 Accepts student questions and returns step-by-step AI solutions.
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, UploadFile, File
 from models.schemas import DoubtRequest, DoubtResponse
 from services.ai_service import ai_service
 
@@ -13,13 +13,25 @@ router = APIRouter(prefix="/api/doubt", tags=["Doubt Solver"])
 async def solve_doubt(body: DoubtRequest):
     """
     Solve a student's doubt with step-by-step explanation.
-    Uses OpenAI GPT-4o-mini when API key is set; rich fallback otherwise.
+    Uses Gemini when API key is set; rich fallback otherwise.
     """
     result = ai_service.solve_doubt(
         question=body.question,
         subject=body.subject,
     )
     return DoubtResponse(**result)
+
+
+@router.post("/solve-image")
+async def solve_image(file: UploadFile = File(...)):
+    """
+    Solve a doubt from an uploaded image using Gemini Vision.
+    Accepts JPG, PNG, WEBP images of questions/problems.
+    """
+    file_bytes = await file.read()
+    mime_type = file.content_type or "image/jpeg"
+    result = ai_service.solve_image_doubt(file_bytes, mime_type)
+    return result
 
 
 @router.get("/topics")

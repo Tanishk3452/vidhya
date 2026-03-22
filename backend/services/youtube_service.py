@@ -2,6 +2,7 @@ import re
 import json
 import httpx
 import html
+import traceback
 import xml.etree.ElementTree as ET
 from typing import Optional
 from services.ai_service import ai_service
@@ -14,41 +15,46 @@ class YouTubeService:
 
     def get_transcript(self, video_id: str) -> str:
         try:
-            # Bypass the corrupted Third-Party Library and scrape YouTube natively!
+            import traceback, json, re, html
             headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
             response = httpx.get(f"https://www.youtube.com/watch?v={video_id}", headers=headers, follow_redirects=True)
             page_html = response.text
             
-            # YouTube stores an array of caption tracks directly in the HTML
-            # Extract only the clean JSON array without trying to parse nested parent structures
-            tracks_match = re.search(r'"captionTracks":(\[.*?\])', page_html)
+            # Dangerously beautiful extraction: Directly scan the HTML for the backend API endpoints
+            # This completely bypasses the fragile ytInitialPlayerResponse JSON decoding DOM!
+            # We use `[\\/]+` because YouTube often escapes forward slashes in JSON as `\/`
+            urls = re.findall(r'"baseUrl"\s*:\s*"([^"]+api[\\/]+timedtext[^"]+)"', page_html)
             
-            if not tracks_match:
-                return "Error: No caption tracks found for this video. Make sure subtitles are enabled."
+            if not urls:
+                return "Error: No caption tracks found for this video. The video might not have English subtitles enabled."
                 
-            # Properly decode the JSON array (handles all nested characters, `\u0026`, etc. natively)
-            tracks_json = tracks_match.group(1)
-            tracks = json.loads(tracks_json)
+            # Safely decode the unicode escaped \u0026 parameters back into valid URL ampersands &
+            track_urls = [json.loads(f'"{u}"') for u in urls]
             
-            if not tracks:
-                return "Error: Empty caption tracks array."
-                
-            track_url = tracks[0]['baseUrl']
+            # Prefer explicitly generated English tracks (lang=en), otherwise take the first available
+            en_urls = [u for u in track_urls if 'lang=en' in u]
+            track_url = en_urls[0] if en_urls else track_urls[0]
             
-            # Fetch the XML formatted captions
+            # Fetch the parsed XML transcript payload
             xml_data = httpx.get(track_url, headers=headers).text
             
-            # Parse XML to extract pure text
+            if not xml_data.strip():
+                return "Error: YouTube returned an empty transcript payload for this video."
+            
+            # Traverse XML nodes safely and pull text blocks
             root = ET.fromstring(xml_data)
-            transcript_words = [child.text for child in root if child.text]
+            transcript_words = []
+            for child in root.iter():
+                if child.text and child.text.strip():
+                    transcript_words.append(child.text.strip())
             transcript = " ".join(transcript_words)
             
-            # Fix escaped HTML entities like &amp;
-            transcript = html.unescape(transcript)
+            # Flush legacy HTML entities (like &#39; -> ')
+            return html.unescape(transcript)
             
-            return transcript
+        except xml.etree.ElementTree.ParseError:
+            return "Error: Failed to parse the XML transcript file. YouTube might have changed their format."
         except Exception as e:
-            import traceback
             return f"Error manually scraping transcript: {e}\nTraceback: {traceback.format_exc()}"
 
     def process_video(self, url: str) -> dict:
@@ -78,7 +84,7 @@ class YouTubeService:
         # We reuse the main AI service core generation
         result = ai_service._call_gemini(prompt)
         
-        if not result or result.startswith("⚠️"):
+        if not result:
             return {"error": "Failed to generate AI notes from transcript. AI API might be unavailable."}
             
         return {

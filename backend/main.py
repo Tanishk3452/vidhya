@@ -2,11 +2,13 @@
 NeuroLearn AI — FastAPI Main Application Entry Point
 Run with: uvicorn main:app --reload --port 8000
 """
-import os
-from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 load_dotenv()
+import os
+from contextlib import asynccontextmanager
+
+
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
