@@ -85,13 +85,17 @@ class AIService:
             print("  ⚠️  google-genai not installed: run pip install google-genai")
 
     def _call_gemini(self, prompt: str) -> Optional[str]:
-        """Send a prompt to Gemini and return the text response."""
         if not self.client or not self.model_name:
             return None
         try:
+            from google.genai import types
             response = self.client.models.generate_content(
                 model=self.model_name,
-                contents=prompt
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    max_output_tokens=2048,   # allow longer detailed answers
+                    temperature=0.3,          # lower = more precise, less creative
+                )
             )
             return response.text
         except Exception as e:
@@ -188,18 +192,33 @@ class AIService:
                 f"Use the exact terminology and definitions provided in the text."
             )
 
+        # In ai_service.py, inside solve_doubt(), REPLACE the prompt variable with this:
+
         prompt = (
-            f"You are NeuroLearn AI, an expert tutor for Indian competitive exams "
-            f"(JEE Advanced, NEET, UPSC). The student is asking a doubt regarding {detected_subject}.\n\n"
-            "Give a clear, structured answer with:\n"
-            "- Brief concept explanation\n"
-            "- Step-by-step solution with numbered steps\n"
-            "- Key formula(s) if applicable\n"
-            "- A real-world example or memory trick\n"
-            "- 💡 A JEE/NEET/UPSC tip at the end\n\n"
-            "Use **bold** for key terms. Keep it exam-focused."
-            f"{rag_instruction}\n\n"
-            f"Student Question: {question}"
+            f"You are an expert Indian competitive exam tutor specializing in {detected_subject} "
+            f"for JEE Advanced, NEET, and UPSC.\n\n"
+            f"A student has asked: {question}\n\n"
+            "INSTRUCTIONS — follow these STRICTLY:\n"
+            "1. First identify EXACTLY what concept/topic this question is about\n"
+            "2. If it is a numerical problem — solve it completely with every step shown\n"
+            "3. If it is a conceptual question — give the precise definition, then explain with a concrete example\n"
+            "4. Show ALL working clearly with proper units at every step\n"
+            "5. State the final answer explicitly at the end\n"
+            "6. Give exactly ONE relevant formula with explanation of each variable\n"
+            "7. Add one exam-specific tip relevant to JEE/NEET/UPSC at the end\n\n"
+            "FORMAT your response exactly like this:\n"
+            "**Concept:** [name the exact concept]\n"
+            "**Solution:**\n"
+            "[full step-by-step working]\n"
+            "**Answer:** [clear final answer with units]\n"
+            "**Key Formula:** [formula with variable definitions]\n"
+            "**Exam Tip:** [one specific tip for JEE/NEET/UPSC]\n\n"
+            "RULES:\n"
+            "- Never give vague or generic answers\n"
+            "- Never skip steps in numerical problems\n"
+            "- Use **bold** for all key terms and values\n"
+            "- If the question is ambiguous, state your assumption clearly before solving\n"
+            f"{rag_instruction}"
         )
 
         answer = self._call_gemini(prompt)

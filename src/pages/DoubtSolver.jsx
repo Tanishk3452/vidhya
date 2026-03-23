@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send, Mic, Bot, Loader, Upload, X, Wifi, WifiOff } from 'lucide-react'
 import axios from 'axios'
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
+
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -42,11 +45,66 @@ const initialMessages = [
   }
 ]
 
-function formatMessage(text) {
+const renderMath = (text) => {
+  if (!text) return ''
+  return text.replace(/\$([^$]+)\$/g, (_, math) => {
+    try {
+      return katex.renderToString(math, { throwOnError: false, displayMode: false })
+    } catch {
+      return math
+    }
+  })
+}
+
+const formatMessage = (text) => {
+  if (!text) return ''
+
   return text
+    // Clean LaTeX math — convert common patterns to readable text
+    .replace(/\$([^$]+)\$/g, (_, math) => {
+      return math
+        .replace(/\\Omega/g, 'Ω')
+        .replace(/\\alpha/g, 'α')
+        .replace(/\\beta/g, 'β')
+        .replace(/\\gamma/g, 'γ')
+        .replace(/\\delta/g, 'δ')
+        .replace(/\\theta/g, 'θ')
+        .replace(/\\lambda/g, 'λ')
+        .replace(/\\mu/g, 'μ')
+        .replace(/\\pi/g, 'π')
+        .replace(/\\sigma/g, 'σ')
+        .replace(/\\tau/g, 'τ')
+        .replace(/\\phi/g, 'φ')
+        .replace(/\\times/g, '×')
+        .replace(/\\cdot/g, '·')
+        .replace(/\\div/g, '÷')
+        .replace(/\\pm/g, '±')
+        .replace(/\\leq/g, '≤')
+        .replace(/\\geq/g, '≥')
+        .replace(/\\neq/g, '≠')
+        .replace(/\\approx/g, '≈')
+        .replace(/\\infty/g, '∞')
+        .replace(/\\sqrt\{([^}]+)\}/g, '√($1)')
+        .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
+        .replace(/\^{([^}]+)}/g, '^$1')
+        .replace(/\^(\d)/g, '^$1')
+        .replace(/_{([^}]+)}/g, '_$1')
+        .replace(/\\text\{([^}]+)\}/g, '$1')
+        .replace(/\\ /g, ' ')
+        .replace(/\\/g, '')
+        .trim()
+    })
+    // Remove ### from headers but keep the text
+    .replace(/^###\s*/gm, '')
+    .replace(/^##\s*/gm, '')
+    .replace(/^#\s*/gm, '')
+    // Bold
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    // Italic
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    // Inline code
     .replace(/`(.*?)`/g, '<code style="background:rgba(108,99,255,0.15);padding:0.1rem 0.35rem;border-radius:4px;font-family:monospace;font-size:0.85em">$1</code>')
+    // Line breaks
     .replace(/\n/g, '<br/>')
 }
 
