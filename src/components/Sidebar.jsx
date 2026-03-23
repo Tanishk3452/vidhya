@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { BookMarked } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Brain, HelpCircle, BookOpen,
@@ -7,6 +8,7 @@ import {
 } from 'lucide-react'
 
 const navItems = [
+  { label: 'Syllabus Tracker', icon: BookMarked, path: '/tracker' },
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { label: 'Study Planner', icon: Brain, path: '/planner' },
   { label: 'Doubt Solver', icon: HelpCircle, path: '/doubt-solver' },

@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # Routers
 from routers.dashboard import router as dashboard_router
 from models.db import seed_demo_user  
+from routers.tracker import router as tracker_router
 from routers.auth import router as auth_router
 from routers.study_plan import router as study_plan_router
 from routers.doubt import router as doubt_router
@@ -81,6 +82,7 @@ app.include_router(study_plan_router)
 app.include_router(doubt_router)
 app.include_router(questions_router)
 app.include_router(analytics_router)
+app.include_router(tracker_router)
 app.include_router(rank_router)
 app.include_router(youtube_router)
 

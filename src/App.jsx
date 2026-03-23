@@ -12,6 +12,7 @@ import AdaptiveQuestions from './pages/AdaptiveQuestions'
 import Analytics from './pages/Analytics'
 import RankPredictor from './pages/RankPredictor'
 import Gamification from './pages/Gamification'
+import SyllabusTracker from './pages/SyllabusTracker'
 
 const OrbBackground = () => (
   <div className="orb-container">
@@ -60,6 +61,11 @@ export default function App() {
             </AppLayout>
           }
         />
+        <Route path="/tracker" element={
+          <AppLayout pageTitle="Syllabus Tracker" pageSubtitle="Track every topic across your syllabus">
+            <SyllabusTracker />
+          </AppLayout>
+        } />
         <Route
           path="/doubt-solver"
           element={
