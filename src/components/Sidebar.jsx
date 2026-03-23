@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Brain, HelpCircle, BookOpen,
   BarChart3, TrendingUp, Trophy, ChevronLeft, ChevronRight,
-  Zap, Settings, LogOut, Youtube
+  Settings, LogOut, Youtube
 } from 'lucide-react'
 
 const navItems = [
@@ -25,18 +25,30 @@ export default function Sidebar() {
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
       {/* Logo */}
       <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">
-          <Zap size={22} color="white" />
-        </div>
-        <div className="sidebar-logo-text">
-          <h2>NeuroLearn</h2>
-          <span>AI Learning Companion</span>
+        <div className="sidebar-logo-text" style={{ paddingLeft: '0.2rem' }}>
+          <h2 style={{ 
+            fontFamily:"'Hind', 'Outfit', sans-serif", 
+            fontWeight:'900', 
+            fontSize:'1.8rem',
+            letterSpacing: '-0.02em',
+            display: 'flex',
+            alignItems: 'baseline'
+          }}>
+            <span style={{ 
+              background: 'linear-gradient(to right, #2563eb, #06b6d4)', 
+              WebkitBackgroundClip: 'text', 
+              WebkitTextFillColor: 'transparent',
+              paddingRight: '2px'
+            }}>विद्या</span>
+            <span style={{ color: 'var(--text-primary)' }}>AI</span>
+          </h2>
+          <span style={{ marginTop: '0.2rem', display: 'block' }}>Your AI Learning Companion</span>
         </div>
       </div>
 
       {/* Nav */}
       <nav className="sidebar-nav">
-        <div className="sidebar-section-label">Main Menu</div>
+        <div className="sidebar-section-label" style={{ color: 'var(--primary)', opacity: 0.8 }}>Main Menu</div>
         {navItems.map(({ label, icon: Icon, path }) => (
           <NavLink
             key={path}
@@ -51,7 +63,7 @@ export default function Sidebar() {
         ))}
 
         <div className="divider" style={{ margin: '1rem 0 0.5rem' }} />
-        <div className="sidebar-section-label">Settings</div>
+        <div className="sidebar-section-label" style={{ color: 'var(--primary)', opacity: 0.8 }}>Settings</div>
 
         <NavLink to="/settings" className="nav-item">
           <div className="nav-item-icon"><Settings size={19} /></div>
@@ -67,10 +79,13 @@ export default function Sidebar() {
       {/* User */}
       <div className="sidebar-bottom">
         <div className="sidebar-user">
-          <div className="sidebar-user-avatar">A</div>
+          <div className="sidebar-user-avatar" style={{
+            background: 'var(--grad-primary)',
+            boxShadow: '0 2px 10px var(--primary-glow)'
+          }}>A</div>
           <div className="sidebar-user-info">
             <h4>Aryan Sharma</h4>
-            <p>JEE Advanced 2025</p>
+            <p>JEE Advanced 2025 · 🔥 14 days</p>
           </div>
         </div>
       </div>

@@ -1,73 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
-import { Clock, Lightbulb, ChevronRight, CheckCircle, XCircle, Zap, Trophy } from 'lucide-react'
+import { Clock, Lightbulb, ChevronRight, CheckCircle, XCircle, Zap, Trophy, Loader2, Settings2 } from 'lucide-react'
+import { questionsAPI } from '../services/api'
 
-const questions = [
-  {
-    id: 1, subject: 'Physics', topic: 'Rotational Motion', difficulty: 'Hard',
-    question: 'A solid cylinder of mass M and radius R rolls without slipping down an inclined plane of angle θ. What is the acceleration of the cylinder?',
-    options: [
-      'a = (2/3)g sin θ',
-      'a = g sin θ',
-      'a = (2/3)g cos θ',
-      'a = (1/2)g sin θ'
-    ],
-    correct: 0,
-    explanation: 'For a solid cylinder rolling without slipping, using the equation of motion with rotational inertia:\n\nI = (1/2)MR² for solid cylinder\n\nUsing Newton\'s law: Mg sinθ - f = Ma\nTorque equation: fR = Iα = (1/2)MR² × (a/R)\n\nSolving: f = (1/2)Ma\n∴ Mg sinθ = Ma + (1/2)Ma = (3/2)Ma\n∴ a = (2/3)g sinθ',
-    tags: ['Rolling motion', 'Moment of inertia', 'Friction']
-  },
-  {
-    id: 2, subject: 'Chemistry', topic: 'Organic Chemistry', difficulty: 'Medium',
-    question: 'Which of the following reagents is used for the oxidation of primary alcohols to carboxylic acids?',
-    options: [
-      'PCC (Pyridinium chlorochromate)',
-      'KMnO₄ / H₂SO₄',
-      'NaBH₄',
-      'LiAlH₄'
-    ],
-    correct: 1,
-    explanation: 'KMnO₄/H₂SO₄ is a strong oxidizing agent that converts:\n• Primary alcohols → Carboxylic acids\n• Secondary alcohols → Ketones\n• Alkenes → Diols (in neutral/acidic)\n\nPCC only oxidizes primary alcohols to aldehydes (stops there).\nNaBH₄ and LiAlH₄ are REDUCING agents, not oxidizing.',
-    tags: ['Alcohols', 'Oxidation', 'Organic reactions']
-  },
-  {
-    id: 3, subject: 'Mathematics', topic: 'Integration', difficulty: 'Medium',
-    question: 'Evaluate: ∫₀^π sin²(x) dx',
-    options: [
-      'π/4',
-      'π/2',
-      'π',
-      '2π'
-    ],
-    correct: 1,
-    explanation: 'Using the identity: sin²(x) = (1 - cos2x)/2\n\n∫₀^π sin²(x) dx = ∫₀^π (1 - cos2x)/2 dx\n\n= [x/2 - sin2x/4]₀^π\n\n= (π/2 - sin2π/4) - (0 - sin0/4)\n\n= π/2 - 0 - 0\n\n= π/2 ✅',
-    tags: ['Definite integration', 'Trigonometry', 'Standard formulas']
-  },
-  {
-    id: 4, subject: 'Physics', topic: 'Electrostatics', difficulty: 'Easy',
-    question: 'The electric field inside a conducting sphere with total charge Q is:',
-    options: [
-      'Q/(4πε₀r²)',
-      'Zero',
-      'Q/(4πε₀R²)',
-      'σ/ε₀'
-    ],
-    correct: 1,
-    explanation: 'By Gauss\' Law, for a conducting sphere:\n\nAll charges reside on the SURFACE.\n\nInside the conductor: No free charges → E = 0\n\nThis is a fundamental property of conductors in electrostatic equilibrium. The field is only non-zero outside the sphere where it equals Q/(4πε₀r²).',
-    tags: ['Gauss law', 'Conductors', 'Electric field']
-  },
-  {
-    id: 5, subject: 'Chemistry', topic: 'Physical Chemistry', difficulty: 'Hard',
-    question: 'For the reaction N₂(g) + 3H₂(g) ⇌ 2NH₃(g), if the pressure is increased by a factor of 4, the equilibrium constant Kp will:',
-    options: [
-      'Increase by factor of 16',
-      'Decrease by factor of 16',
-      'Remain unchanged',
-      'Increase by factor of 4'
-    ],
-    correct: 2,
-    explanation: 'The equilibrium constant K (both Kc and Kp) depends ONLY on temperature.\n\nChanging pressure (at constant temperature) shifts the equilibrium position but does NOT change the value of K.\n\nThis is a fundamental principle of chemical equilibrium — K is a constant at a given temperature regardless of concentration or pressure changes.',
-    tags: ['Equilibrium', 'Le Chatelier', 'Kp']
-  }
-]
+const JEE_SYLLABUS = {
+  Physics: ['Rotational Motion', 'Thermodynamics', 'Electrostatics', 'Optics', 'Modern Physics', 'Kinematics', 'Waves', 'Magnetism'],
+  Chemistry: ['Physical Chemistry', 'Organic Chemistry', 'Inorganic Chemistry', 'Equilibrium', 'Atomic Structure', 'Solutions'],
+  Mathematics: ['Calculus', 'Algebra', 'Coordinate Geometry', 'Trigonometry', 'Probability', 'Complex Numbers', 'Integration', 'Matrices']
+}
 
 const difficultyColors = {
   Easy: { bg:'rgba(0,255,136,0.1)', color:'#00ff88', border:'rgba(0,255,136,0.3)' },
@@ -80,51 +19,106 @@ const subjectColors = {
 }
 
 export default function AdaptiveQuestions() {
+  const [isSessionActive, setIsSessionActive] = useState(false)
+  const [config, setConfig] = useState({ subject: '', topic: '', difficulty: '' })
+  
+  const [q, setQ] = useState(null)
+  const [loading, setLoading] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selected, setSelected] = useState(null)
   const [revealed, setRevealed] = useState(false)
   const [showHint, setShowHint] = useState(false)
   const [timeLeft, setTimeLeft] = useState(120)
   const [score, setScore] = useState({ correct: 0, wrong: 0, total: 0 })
-  const [filter, setFilter] = useState('All')
+  const [filter, setFilter] = useState('')
+  const [submissionData, setSubmissionData] = useState(null)
   const timerRef = useRef()
 
-  const q = questions[currentIndex % questions.length]
-  const dc = difficultyColors[q.difficulty]
+  const fetchNextQuestion = async () => {
+    setLoading(true)
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}')
+      
+      let mappedDiff = ''
+      if(config.difficulty === 'Weak') mappedDiff = 'Easy'
+      if(config.difficulty === 'Intermediate') mappedDiff = 'Medium'
+      if(config.difficulty === 'Expert') mappedDiff = 'Hard'
+
+      const res = await questionsAPI.getNext(
+        user.id || 'demo-user-001', 
+        config.subject || '',
+        config.topic || '',
+        mappedDiff
+      )
+      
+      setQ(res.data)
+      setTimeLeft(120)
+      setSelected(null)
+      setRevealed(false)
+      setShowHint(false)
+      setSubmissionData(null)
+      
+      clearInterval(timerRef.current)
+      timerRef.current = setInterval(() => {
+        setTimeLeft(t => {
+          if (t <= 1) { clearInterval(timerRef.current); return 0 }
+          return t - 1
+        })
+      }, 1000)
+    } catch (err) {
+      console.error("Failed to load adaptive question:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    setTimeLeft(120)
-    setSelected(null)
-    setRevealed(false)
-    setShowHint(false)
-    clearInterval(timerRef.current)
-    timerRef.current = setInterval(() => {
-      setTimeLeft(t => {
-        if (t <= 1) { clearInterval(timerRef.current); return 0 }
-        return t - 1
-      })
-    }, 1000)
+    if(isSessionActive) {
+      fetchNextQuestion()
+    }
     return () => clearInterval(timerRef.current)
-  }, [currentIndex])
+  }, [isSessionActive])
+
+  const handleStartSession = () => {
+    setIsSessionActive(true)
+    setScore({ correct: 0, wrong: 0, total: 0 })
+    setCurrentIndex(0)
+  }
 
   const handleSelect = (idx) => {
     if (revealed) return
     setSelected(idx)
   }
 
-  const handleReveal = () => {
-    if (selected === null) return
+  const handleReveal = async () => {
+    if (selected === null || !q) return
     clearInterval(timerRef.current)
     setRevealed(true)
-    setScore(prev => ({
-      correct: prev.correct + (selected === q.correct ? 1 : 0),
-      wrong: prev.wrong + (selected !== q.correct ? 1 : 0),
-      total: prev.total + 1
-    }))
+    
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}')
+      const res = await questionsAPI.submit({
+        user_id: user.id || 'demo-user-001',
+        question_id: q.id,
+        selected_index: selected,
+        time_taken_seconds: 120 - timeLeft
+      })
+      
+      setSubmissionData(res.data)
+      
+      setScore(prev => ({
+        correct: prev.correct + (res.data.correct ? 1 : 0),
+        wrong: prev.wrong + (!res.data.correct ? 1 : 0),
+        total: prev.total + 1
+      }))
+    } catch (err) {
+      console.error("Submit failed", err)
+    }
   }
 
   const handleNext = () => {
     setCurrentIndex(i => i + 1)
+    fetchNextQuestion()
   }
 
   const timerColor = timeLeft > 60 ? 'var(--secondary)' : timeLeft > 30 ? 'var(--warning)' : 'var(--accent)'
@@ -132,13 +126,114 @@ export default function AdaptiveQuestions() {
 
   const optionState = (idx) => {
     if (!revealed) return selected === idx ? 'selected' : ''
-    if (idx === q.correct) return 'correct'
-    if (idx === selected && idx !== q.correct) return 'incorrect'
+    // If backend submission returned, use it to accurately map the correct index, otherwise fallback locally.
+    const trueCorrect = submissionData ? submissionData.correct_index : q.correct_index
+    if (idx === trueCorrect) return 'correct'
+    if (idx === selected && idx !== trueCorrect) return 'incorrect'
     return ''
   }
 
+  if (!isSessionActive) {
+    const availableTopics = config.subject ? JEE_SYLLABUS[config.subject] : []
+    return (
+      <div className="card" style={{ maxWidth:'600px', margin:'2rem auto', padding:'2rem', animation:'fadeInUp 0.5s ease' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:'1rem', marginBottom:'2rem' }}>
+          <div style={{ padding:'1rem', background:'rgba(108,99,255,0.1)', borderRadius:'var(--radius-lg)' }}>
+            <Settings2 color="var(--primary)" size={32} />
+          </div>
+          <div>
+            <h2 style={{ fontSize:'1.5rem', color:'var(--text-primary)', marginBottom:'0.25rem' }}>Adaptive Engine Setup</h2>
+            <p style={{ color:'var(--text-secondary)', fontSize:'0.9rem' }}>Configure exactly what you want Gemini to test you on.</p>
+          </div>
+        </div>
+
+        <div style={{ display:'flex', flexDirection:'column', gap:'1.5rem' }}>
+          <div>
+            <label style={{ display:'block', marginBottom:'0.5rem', color:'var(--text-secondary)', fontSize:'0.85rem' }}>Target Subject (Optional)</label>
+            <select 
+              className="input-field" 
+              value={config.subject} 
+              onChange={e => setConfig({ ...config, subject: e.target.value, topic: '' })}
+            >
+              <option value="">Any Subject (Global Adaptive Loop)</option>
+              <option value="Physics">Physics</option>
+              <option value="Chemistry">Chemistry</option>
+              <option value="Mathematics">Mathematics</option>
+            </select>
+          </div>
+          
+          <div>
+            <label style={{ display:'block', marginBottom:'0.5rem', color:'var(--text-secondary)', fontSize:'0.85rem' }}>Target Chapter (Optional)</label>
+            <select 
+              className="input-field" 
+              value={config.topic} 
+              onChange={e => setConfig({ ...config, topic: e.target.value })}
+              disabled={!config.subject}
+            >
+              <option value="">Any Chapter</option>
+              {availableTopics.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display:'block', marginBottom:'0.5rem', color:'var(--text-secondary)', fontSize:'0.85rem' }}>Starting Skill Tier (Optional)</label>
+            <select 
+              className="input-field" 
+              value={config.difficulty} 
+              onChange={e => setConfig({ ...config, difficulty: e.target.value })}
+            >
+              <option value="">Auto-Detect via History</option>
+              <option value="Weak">Weak (Easy Questions)</option>
+              <option value="Intermediate">Intermediate (Medium Questions)</option>
+              <option value="Expert">Expert (Hard Questions)</option>
+            </select>
+          </div>
+
+          <button 
+            className="btn btn-primary" 
+            style={{ width:'100%', padding:'1rem', fontSize:'1.05rem', marginTop:'1rem' }}
+            onClick={handleStartSession}
+          >
+            Launch Adaptive Session
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading && !q) {
+    return (
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'50vh', gap: '1rem' }}>
+        <Loader2 size={32} className="spin" style={{ color: 'var(--primary)' }} />
+        <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Generating your personalized question via AI...</span>
+      </div>
+    )
+  }
+
+  if (!q) return null
+
+  const dc = difficultyColors[q.difficulty] || difficultyColors['Medium']
+
   return (
     <div style={{ animation:'fadeInUp 0.5s ease' }}>
+      {/* Header Info */}
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.5rem', flexWrap:'wrap', gap:'1rem' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:'0.75rem' }}>
+          <span className="badge" style={{ background:'var(--bg-glass)', color: dc.color, border:`1px solid ${dc.border}` }}>
+            {q.difficulty} Level
+          </span>
+          <span className="badge" style={{ background:'var(--bg-glass)', color:'var(--text-secondary)', border:'1px solid var(--border)' }}>
+            {q.subject} • {q.topic}
+          </span>
+        </div>
+        
+        <button 
+            onClick={() => { setIsSessionActive(false); setQ(null) }} 
+            style={{ background:'transparent', border:'none', color:'var(--text-muted)', fontSize:'0.85rem', cursor:'pointer' }}
+        >
+          ← Back to Setup
+        </button>
+      </div>
       {/* Score Bar */}
       <div style={{ display:'flex', gap:'1rem', marginBottom:'1.5rem', flexWrap:'wrap' }}>
         <div className="card" style={{ flex:1, minWidth:'120px', padding:'1rem', textAlign:'center' }}>
@@ -224,8 +319,8 @@ export default function AdaptiveQuestions() {
                     {['A','B','C','D'][idx]}
                   </div>
                   <span style={{ fontSize:'0.92rem', fontFamily:'monospace', fontWeight:'500' }}>{opt}</span>
-                  {revealed && idx === q.correct && <CheckCircle size={18} color="#00ff88" style={{ marginLeft:'auto', flexShrink:0 }} />}
-                  {revealed && idx === selected && idx !== q.correct && <XCircle size={18} color="var(--accent)" style={{ marginLeft:'auto', flexShrink:0 }} />}
+                  {revealed && idx === (submissionData?.correct_index ?? q.correct_index) && <CheckCircle size={18} color="#00ff88" style={{ marginLeft:'auto', flexShrink:0 }} />}
+                  {revealed && idx === selected && idx !== (submissionData?.correct_index ?? q.correct_index) && <XCircle size={18} color="var(--accent)" style={{ marginLeft:'auto', flexShrink:0 }} />}
                 </div>
               ))}
             </div>
@@ -246,7 +341,7 @@ export default function AdaptiveQuestions() {
                   id="submit-btn"
                   disabled={selected === null}
                 >
-                  Submit Answer
+                  {loading ? <Loader2 size={16} className="spin" /> : 'Submit Answer'}
                 </button>
               ) : (
                 <button
@@ -280,23 +375,23 @@ export default function AdaptiveQuestions() {
           )}
 
           {/* Explanation */}
-          {revealed && (
+          {revealed && submissionData && (
             <div style={{
-              background: selected === q.correct ? 'rgba(0,255,136,0.05)' : 'rgba(255,107,107,0.05)',
-              border:`1px solid ${selected === q.correct ? 'rgba(0,255,136,0.2)' : 'rgba(255,107,107,0.2)'}`,
+              background: submissionData.correct ? 'rgba(0,255,136,0.05)' : 'rgba(255,107,107,0.05)',
+              border:`1px solid ${submissionData.correct ? 'rgba(0,255,136,0.2)' : 'rgba(255,107,107,0.2)'}`,
               borderRadius:'var(--radius-lg)', padding:'1.25rem'
             }}>
               <div style={{
                 fontSize:'0.8rem', fontWeight:'700',
-                color: selected === q.correct ? '#00ff88' : 'var(--accent)',
+                color: submissionData.correct ? '#00ff88' : 'var(--accent)',
                 marginBottom:'0.6rem'
               }}>
-                {selected === q.correct ? '✅ Correct! Well done!' : '❌ Incorrect — Let\'s understand why:'}
+                {submissionData.correct ? '✅ Correct! Well done!' : '❌ Incorrect — Let\'s understand why:'}
               </div>
               <pre style={{
                 fontSize:'0.83rem', color:'var(--text-secondary)',
                 whiteSpace:'pre-wrap', lineHeight:'1.7', fontFamily:'inherit'
-              }}>{q.explanation}</pre>
+              }}>{submissionData.explanation || q.explanation}</pre>
             </div>
           )}
 
@@ -312,13 +407,22 @@ export default function AdaptiveQuestions() {
 
           {/* AI Analysis */}
           <div className="card" style={{ padding:'1.25rem', background:'rgba(108,99,255,0.04)' }}>
-            <div style={{ fontSize:'0.8rem', fontWeight:'700', color:'var(--primary-light)', marginBottom:'0.6rem' }}>🤖 AI Adaptive Analysis</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom:'0.6rem' }}>
+              <span style={{ fontSize:'0.8rem', fontWeight:'700', color:'var(--primary-light)' }}>🤖 AI Adaptive Engine</span>
+              {submissionData?.skill_level && (
+                <span className="badge" style={{ background: 'var(--primary-dark)', color: 'white', fontSize: '0.65rem' }}>
+                  Skill Level: {submissionData.skill_level}
+                </span>
+              )}
+            </div>
+            
             <p style={{ fontSize:'0.83rem', color:'var(--text-secondary)', lineHeight:'1.6' }}>
-              Based on your recent performance, this question targets <strong style={{color:'var(--text-primary)'}}>{q.topic}</strong> — one of your identified weak areas. The difficulty is set to <strong style={{color: dc.color}}>{q.difficulty}</strong> because you've been performing well on easier questions in this topic.
+              Based on your historical performance, this question mapped to <strong style={{color:'var(--text-primary)'}}>{q.topic}</strong>. 
+              The difficulty was precisely generated at <strong style={{color: dc.color}}>{q.difficulty}</strong> using Gemini to match your exact competency baseline.
             </p>
             <div style={{ marginTop:'0.75rem', padding:'0.65rem', background:'var(--bg-glass)',
               borderRadius:'var(--radius-md)', fontSize:'0.8rem', color:'var(--text-muted)' }}>
-              💡 Tip: Solving 5 more questions in this topic will move you from <strong>weak → average</strong> territory.
+              💡 Tip: Answering these continuously automatically tailors the upcoming AI generations to close your weakest skill gaps instantly!
             </div>
           </div>
         </div>

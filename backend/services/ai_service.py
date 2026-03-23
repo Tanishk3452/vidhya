@@ -266,6 +266,62 @@ class AIService:
 
         return self._fallback_plan(exam, weak_subjects, hours_per_day)
 
+    # ─── Adaptive Questions ──────────────────────────────────────────────────
+
+    def generate_adaptive_question(self, topic: str, difficulty: str) -> Optional[dict]:
+        """Dynamically generates a single multiple choice question via Gemini."""
+        prompt = (
+            f"Generate one high-quality, competitive-exam level multiple choice question.\n"
+            f"Topic: {topic}\n"
+            f"Difficulty: {difficulty}\n\n"
+            "Return ONLY valid JSON (no markdown, no code blocks) with this exact structure:\n"
+            "{\n"
+            '  "question": "The question text",\n'
+            '  "options": ["Option A", "Option B", "Option C", "Option D"],\n'
+            '  "correct_index": 0,\n'
+            '  "explanation": "Detailed step-by-step solution",\n'
+            '  "tags": ["tag1", "tag2"],\n'
+            '  "xp_reward": 15\n'
+            "}\n"
+            "Ensure correct_index is an integer from 0 to 3 matching the correct option."
+        )
+
+        answer = self._call_gemini(prompt)
+
+        if answer:
+            try:
+                import json
+                raw = answer.strip()
+                if "```" in raw:
+                    parts = raw.split("```")
+                    for part in parts:
+                        part = part.strip()
+                        if part.startswith("json"):
+                            part = part[4:].strip()
+                        try:
+                            # Add random UUID and context info
+                            payload = json.loads(part)
+                            import uuid
+                            payload["id"] = str(uuid.uuid4())
+                            payload["subject"] = detect_subject(topic)
+                            payload["topic"] = topic
+                            payload["difficulty"] = difficulty
+                            return payload
+                        except Exception:
+                            continue
+                
+                payload = json.loads(raw)
+                import uuid
+                payload["id"] = str(uuid.uuid4())
+                payload["subject"] = detect_subject(topic)
+                payload["topic"] = topic
+                payload["difficulty"] = difficulty
+                return payload
+            except Exception as e:
+                print(f"  ⚠️  Failed to parse Gemini adaptive question JSON: {e}")
+
+        return None
+
     # ─── Smart Fallback (question-aware) ────────────────────────────────────
 
     def _smart_fallback(self, question: str, subject: str) -> str:

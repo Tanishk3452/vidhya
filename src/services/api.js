@@ -44,8 +44,10 @@ export const authAPI = {
 // ─── Study Plan ───────────────────────────────────────────────────────────
 
 export const studyPlanAPI = {
+  getHistory: (userId = 'demo-user-001') => api.get('/api/study-plan/history', { params: { user_id: userId } }),
   generate: (data) => api.post('/api/study-plan/generate', data),
 }
+
 
 // ─── Doubt Solver ─────────────────────────────────────────────────────────
 
@@ -59,6 +61,7 @@ export const doubtAPI = {
 
 export const questionsAPI = {
   get: (params = {}) => api.get('/api/questions', { params }),
+  getNext: (userId = 'demo-user-001', subject = '', topic = '', difficulty = '') => api.get('/api/questions/next', { params: { user_id: userId, ...(subject && {subject}), ...(topic && {topic}), ...(difficulty && {difficulty}) } }),
   submit: (data) => api.post('/api/questions/submit', data),
   getTopics: () => api.get('/api/questions/topics'),
 }

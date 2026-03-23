@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Zap, Eye, EyeOff, ArrowRight, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, ArrowRight, AlertCircle } from 'lucide-react'
 import { authAPI } from '../services/api'
 
 const examOptions = ['JEE Advanced', 'JEE Mains', 'NEET', 'UPSC', 'GATE', 'CAT']
@@ -71,26 +71,31 @@ export default function AuthPage({ onLogin }) {
       {/* Left Panel */}
       <div className="auth-left">
         <div style={{ maxWidth:'420px', width:'100%' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:'0.75rem', marginBottom:'3rem' }}>
-            <div style={{
-              width:'40px', height:'40px', borderRadius:'10px',
-              background:'var(--grad-primary)', display:'flex',
-              alignItems:'center', justifyContent:'center',
-              boxShadow:'0 4px 15px var(--primary-glow)'
+          <div style={{ display:'flex', alignItems:'center', gap:'0.65rem', marginBottom:'3rem' }}>
+            <span style={{ 
+              fontFamily:"'Hind', 'Outfit', sans-serif", 
+              fontWeight:'900', 
+              fontSize:'2.2rem',
+              letterSpacing: '-0.02em',
+              display: 'flex',
+              alignItems: 'baseline'
             }}>
-              <Zap size={20} color="white" />
-            </div>
-            <span style={{ fontFamily:"'Outfit',sans-serif", fontWeight:'800', fontSize:'1.2rem' }}>
-              <span className="text-gradient">NeuroLearn</span>{' '}
-              <span style={{ color:'var(--text-secondary)', fontWeight:'400' }}>AI</span>
+              <span style={{ 
+                background: 'linear-gradient(to right, #2563eb, #06b6d4)', 
+                WebkitBackgroundClip: 'text', 
+                WebkitTextFillColor: 'transparent',
+                paddingRight: '2px'
+              }}>विद्या</span>
+              <span style={{ color: 'var(--text-primary)' }}>AI</span>
             </span>
           </div>
 
-          <h2 style={{ fontSize:'1.8rem', fontWeight:'800', marginBottom:'0.75rem', fontFamily:"'Outfit',sans-serif" }}>
-            Your Personal<br /><span className="text-gradient">AI Mentor</span>
+          <h2 style={{ fontSize:'2rem', fontWeight:'800', marginBottom:'0.75rem', fontFamily:"'Outfit',sans-serif", color: 'var(--text-primary)' }}>
+            <span style={{ fontFamily:"'Inter',sans-serif", display:'block', fontSize:'0.45em', color:'var(--primary-light)', fontWeight:'600', marginBottom:'0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Your AI Learning Companion</span>
+            Don't just study hard.<br /><span style={{ background:'var(--grad-primary)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>Study smart.</span>
           </h2>
           <p style={{ color:'var(--text-secondary)', marginBottom:'2.5rem', lineHeight:'1.7' }}>
-            Join thousands of students cracking JEE, NEET & UPSC with AI-powered personalized learning.
+            A retention-first AI system that remembers what you studied, adapts to your pace, and autonomously ensures nothing is forgotten.
           </p>
 
           <div style={{ display:'flex', flexDirection:'column', gap:'1rem' }}>
@@ -104,15 +109,17 @@ export default function AuthPage({ onLogin }) {
 
           <div style={{
             marginTop:'3rem', padding:'1.25rem',
-            background:'rgba(108,99,255,0.08)',
-            border:'1px solid rgba(108,99,255,0.2)',
-            borderRadius:'var(--radius-lg)'
+            background:'rgba(37, 99, 235, 0.05)',
+            border:'1px solid rgba(37, 99, 235, 0.15)',
+            borderRadius:'var(--radius-lg)',
+            position:'relative'
           }}>
-            <div style={{ fontSize:'0.85rem', color:'var(--text-secondary)', fontStyle:'italic', lineHeight:'1.6' }}>
-              "NeuroLearn AI helped me improve my JEE rank from 15,000 to 3,200 in just 3 months!"
+            <div style={{ fontSize:'1.5rem', color:'var(--primary)', opacity:0.3, lineHeight:1, marginBottom:'0.4rem' }}>"</div>
+            <div style={{ fontSize:'0.85rem', color:'var(--text-secondary)', fontStyle:'italic', lineHeight:'1.6', fontFamily:"'Inter',sans-serif" }}>
+              "Vidhya AI helped me improve my JEE rank from 15,000 to 3,200 in just 3 months! The personalized plan is phenomenal."
             </div>
-            <div style={{ marginTop:'0.75rem', fontSize:'0.8rem', fontWeight:'700', color:'var(--primary-light)' }}>
-              — Priya Sharma, IIT Delhi (CSE '24)
+            <div style={{ marginTop:'0.75rem', fontSize:'0.8rem', fontWeight:'700', color:'var(--primary-dark)' }}>
+              — Priya S, IIT Delhi (CSE '24)
             </div>
           </div>
         </div>
@@ -135,8 +142,8 @@ export default function AuthPage({ onLogin }) {
                 style={{
                   flex:1, padding:'0.55rem', borderRadius:'8px',
                   fontWeight:'600', fontSize:'0.88rem', transition:'var(--transition)',
-                  background: mode === m ? 'var(--grad-primary)' : 'transparent',
-                  color: mode === m ? 'white' : 'var(--text-muted)',
+                  background: mode === m ? 'var(--primary)' : 'transparent',
+                  color: mode === m ? 'white' : 'var(--text-secondary)',
                   boxShadow: mode === m ? '0 2px 10px var(--primary-glow)' : 'none',
                   cursor:'pointer', border:'none'
                 }}
@@ -160,7 +167,7 @@ export default function AuthPage({ onLogin }) {
                 <input
                   className="input-field"
                   type="text"
-                  placeholder="Aryan Sharma"
+                  placeholder="John Doe"
                   value={name}
                   onChange={e => setName(e.target.value)}
                   required
@@ -174,7 +181,7 @@ export default function AuthPage({ onLogin }) {
               <input
                 className="input-field"
                 type="email"
-                placeholder="aryan@example.com"
+                placeholder="john@example.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
@@ -264,9 +271,9 @@ export default function AuthPage({ onLogin }) {
                 style={{
                   width:'100%', padding:'0.75rem',
                   borderRadius:'var(--radius-md)',
-                  background:'rgba(0,212,170,0.08)',
-                  border:'1px solid rgba(0,212,170,0.3)',
-                  color:'var(--secondary)', fontWeight:'700',
+                  background:'rgba(37, 99, 235, 0.05)',
+                  border:'1px solid rgba(37, 99, 235, 0.2)',
+                  color:'var(--primary-dark)', fontWeight:'700',
                   fontSize:'0.88rem', cursor:'pointer',
                   transition:'var(--transition)'
                 }}

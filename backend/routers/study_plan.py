@@ -3,9 +3,11 @@ NeuroLearn AI — Study Plan Router
 Generates personalized 7-day study schedules using AI or curated fallback.
 """
 from fastapi import APIRouter, Query
-from models.schemas import StudyPlanRequest, StudyPlanResponse
+from models.schemas import StudyPlanRequest, StudyPlanResponse, StudyPlanHistoryResponse
 from services.ai_service import ai_service
-from models.db import save_study_plan, get_study_plan
+from models.db import save_study_plan, get_study_plan, get_study_plans_history
+import uuid
+from datetime import datetime
 
 router = APIRouter(prefix="/api/study-plan", tags=["Study Planner"])
 
@@ -19,6 +21,12 @@ async def fetch_user_plan(user_id: str = Query("demo-user-001")):
     return StudyPlanResponse(plan=[], title="No Active Plan", tips=[], time_allocation={})
 
 
+
+@router.get("/history", response_model=StudyPlanHistoryResponse)
+async def fetch_user_plan_history(user_id: str = Query("demo-user-001")):
+    """Fetch the student's complete history of generated study plans."""
+    history = get_study_plans_history(user_id)
+    return StudyPlanHistoryResponse(history=history)
 
 @router.post("/generate", response_model=StudyPlanResponse)
 async def generate_plan(body: StudyPlanRequest, user_id: str = Query("demo-user-001")):
@@ -46,12 +54,16 @@ async def generate_plan(body: StudyPlanRequest, user_id: str = Query("demo-user-
     })
 
     response = StudyPlanResponse(
+        id=str(uuid.uuid4()),
+        created_at=datetime.utcnow().isoformat(),
         plan=result.get("plan", []),
         title=title,
         tips=tips,
         time_allocation=alloc,
+        exam=body.exam,
+        weak_subjects=body.weak_subjects,
     )
     
-    # Save the generated plan to MongoDB for persistent access
+    # Save the newly generated plan as a distinct entry in MongoDB
     save_study_plan(user_id, response.model_dump())
     return response

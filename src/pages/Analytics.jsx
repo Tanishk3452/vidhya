@@ -6,7 +6,7 @@ import {
 } from 'chart.js'
 import { Line, Bar, Radar, Doughnut } from 'react-chartjs-2'
 import { TrendingUp, Target, Clock, Zap, Loader2 } from 'lucide-react'
-import axios from 'axios'
+import { analyticsAPI } from '../services/api'
 
 ChartJS.register(
   CategoryScale, LinearScale, PointElement, LineElement,
@@ -48,12 +48,12 @@ export default function Analytics() {
     const uid = user.id || "demo-user-001";
     
     Promise.all([
-      axios.get(`http://localhost:8000/api/analytics/summary?user_id=${uid}`),
-      axios.get(`http://localhost:8000/api/analytics/accuracy-trend?user_id=${uid}`),
-      axios.get(`http://localhost:8000/api/analytics/topic-breakdown?user_id=${uid}`),
-      axios.get(`http://localhost:8000/api/analytics/speed-trend?user_id=${uid}`),
-      axios.get(`http://localhost:8000/api/analytics/radar?user_id=${uid}`),
-      axios.get(`http://localhost:8000/api/analytics/weak-areas?user_id=${uid}`)
+      analyticsAPI.getSummary(uid),
+      analyticsAPI.getAccuracyTrend(uid),
+      analyticsAPI.getTopicBreakdown(uid),
+      analyticsAPI.getSpeedTrend(uid),
+      analyticsAPI.getRadar(uid),
+      analyticsAPI.getWeakAreas(uid)
     ]).then(responses => {
       setStats({
         summary: responses[0]?.data || {},

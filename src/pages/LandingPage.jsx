@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import {
-  Zap, ArrowRight, Star, CheckCircle
+  ArrowRight, CheckCircle
 } from 'lucide-react'
 
 const features = [
@@ -62,99 +62,176 @@ export default function LandingPage({ onLogin }) {
   }
 
   return (
-    <div className="landing-page">
-      {/* Navbar */}
-      <nav className="landing-nav">
-        <div style={{ display:'flex', alignItems:'center', gap:'0.75rem' }}>
-          <div style={{
-            width:'36px', height:'36px', borderRadius:'10px',
-            background:'var(--grad-primary)', display:'flex',
-            alignItems:'center', justifyContent:'center',
-            boxShadow:'0 4px 15px var(--primary-glow)'
+    <div className="landing-page" style={{ position: 'relative', overflow: 'hidden' }}>
+      {/* Background Soft Glow to emulate the mockup's airy gradient */}
+      <div style={{ position: 'absolute', top: '10%', left: '30%', width: '40%', height: '500px', background: 'var(--grad-logo)', opacity: 0.1, filter: 'blur(100px)', zIndex: -1, borderRadius: '50%' }}></div>
+      <div style={{ position: 'absolute', top: '30%', left: '10%', width: '30%', height: '400px', background: 'var(--secondary)', opacity: 0.05, filter: 'blur(120px)', zIndex: -1, borderRadius: '50%' }}></div>
+
+      {/* Navbar Minimalist Layout */}
+      <nav className="landing-nav" style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        padding: '1.25rem 4rem',
+        borderBottom: 'none',
+        background: 'transparent'
+      }}>
+        {/* Vidhya AI Logo */}
+        <div style={{ display:'flex', alignItems:'center', cursor: 'pointer' }}>
+          <span style={{ 
+            fontFamily:"'Hind', 'Outfit', sans-serif", 
+            fontWeight:'900', 
+            fontSize:'1.8rem',
+            letterSpacing: '-0.02em',
+            display: 'flex',
+            alignItems: 'baseline'
           }}>
-            <Zap size={18} color="white" />
-          </div>
-          <span style={{ fontFamily:"'Outfit',sans-serif", fontWeight:'800', fontSize:'1.1rem' }}>
-            <span className="text-gradient">NeuroLearn</span>{' '}
-            <span style={{ color:'var(--text-secondary)', fontWeight:'400' }}>AI</span>
+            <span style={{ 
+              background: 'linear-gradient(to right, #2563eb, #06b6d4)', 
+              WebkitBackgroundClip: 'text', 
+              WebkitTextFillColor: 'transparent',
+              paddingRight: '2px'
+            }}>विद्या</span>
+            <span style={{ color: '#1e293b' }}>AI</span>
           </span>
         </div>
 
-        <div style={{ display:'flex', gap:'2rem', fontSize:'0.9rem',color:'var(--text-secondary)' }}>
-          {['Features','About','Pricing','Blog'].map(t => (
-            <span key={t} style={{ cursor:'pointer', transition:'color 0.2s' }}
+        {/* Center Links */}
+        <div style={{ display:'flex', gap:'2.5rem', fontSize:'0.95rem', color:'var(--text-secondary)', fontWeight: 500 }}>
+          {['Features','Exams','How it works','Testimonials'].map(t => (
+            <span key={t} style={{ cursor:'pointer', transition:'color 0.2s', fontFamily: "'Inter', sans-serif" }}
               onMouseOver={e=>e.target.style.color='var(--text-primary)'}
               onMouseOut={e=>e.target.style.color='var(--text-secondary)'}>{t}</span>
           ))}
         </div>
 
-        <div style={{ display:'flex', gap:'0.75rem' }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => navigate('/auth')}>Sign In</button>
-          <button className="btn btn-primary btn-sm" onClick={handleGetStarted}>Get Started</button>
+        {/* Right Nav Buttons */}
+        <div style={{ display:'flex', alignItems: 'center', gap:'1.5rem' }}>
+          <button style={{ background: 'none', border: 'none', fontWeight: 600, fontSize: '0.95rem', color: '#1e293b', cursor: 'pointer' }} onClick={() => navigate('/auth')}>Log in</button>
+          <button className="btn" onClick={handleGetStarted} style={{
+            background: 'var(--primary-dark)', color: 'white', fontWeight: '600',
+            boxShadow: '0 4px 14px var(--primary-glow)', border: 'none',
+            padding: '0.6rem 1.4rem', borderRadius: 'var(--radius-full)', cursor: 'pointer',
+            fontSize: '0.95rem', fontFamily: "'Inter', sans-serif"
+          }}>Get Started</button>
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="landing-hero">
-        <div className="hero-eyebrow">
-          <Star size={13} />
-          Trusted by 10,000+ Students Across India
+      {/* Hero Central Section */}
+      <section className="landing-hero" style={{ 
+        textAlign: 'center', 
+        maxWidth: '900px', 
+        margin: '3rem auto 0', 
+        padding: '0 2rem' 
+      }}>
+        {/* DevClash Pill Badge */}
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          background: 'rgba(59, 130, 246, 0.1)', 
+          color: 'var(--primary-light)', 
+          padding: '0.4rem 1.2rem', 
+          borderRadius: '999px',
+          fontWeight: '500',
+          fontSize: '0.85rem',
+          border: '1px solid rgba(59, 130, 246, 0.2)',
+          marginBottom: '2.5rem'
+        }}>
+          <span style={{ fontSize: '1rem' }}>✨</span> AI-Powered · DevClash 2026 · NIT Raipur
         </div>
 
-        <h1 className="hero-title">
-          Don't Just Study Hard.<br />
-          <span className="text-gradient">Study Smart with AI.</span>
+        {/* Massive Logo Title */}
+        <h1 style={{ 
+          fontFamily:"'Hind', 'Outfit', sans-serif", 
+          fontWeight:'900', 
+          fontSize:'7rem', 
+          lineHeight: '1.1',
+          letterSpacing: '-0.03em',
+          marginBottom: '1rem',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'baseline'
+        }}>
+          <span style={{ 
+            background: 'linear-gradient(to right, #3b82f6, #06b6d4)', 
+            WebkitBackgroundClip: 'text', 
+            WebkitTextFillColor: 'transparent',
+            paddingRight: '6px'
+          }}>विद्या</span>
+          <span style={{ color: '#0f172a' }}>AI</span>
         </h1>
 
-        <p className="hero-subtitle">
-          NeuroLearn AI is your personal AI mentor for JEE, NEET & UPSC prep.
-          Adaptive study plans, instant doubt solving, and real-time rank predictions —
-          all in one platform.
+        <h2 style={{
+          fontSize: '2.5rem',
+          fontWeight: '700',
+          color: '#334155',
+          fontFamily: "'Inter', sans-serif",
+          lineHeight: '1.2'
+        }}>
+          Your AI Learning Companion
+        </h2>
+        
+        <h3 style={{
+          fontSize: '1.4rem',
+          fontWeight: '500',
+          color: '#64748b',
+          fontFamily: "'Inter', sans-serif",
+          marginTop: '0.5rem',
+          marginBottom: '2rem'
+        }}>
+          for <strong style={{color: '#1e293b'}}>JEE · NEET · UPSC</strong>
+        </h3>
+
+        <p style={{
+          fontSize: '1.15rem',
+          lineHeight: '1.7',
+          color: '#475569',
+          maxWidth: '800px',
+          margin: '0 auto 3rem',
+          fontFamily: "'Inter', sans-serif",
+        }}>
+          A retention-first AI system that remembers what you studied, adapts to your pace,
+          and autonomously ensures nothing is forgotten. Built for India's competitive exam
+          aspirants.
         </p>
 
-        <div className="hero-cta">
-          <button className="btn btn-primary btn-lg" id="start-free-btn" onClick={handleGetStarted}>
+        {/* CTA Buttons */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '1.2rem', marginBottom: '5rem' }}>
+          <button onClick={handleGetStarted} style={{
+            background: '#2563eb', color: 'white', fontWeight: '600',
+            boxShadow: '0 10px 25px rgba(37, 99, 235, 0.25)', border: 'none',
+            padding: '1rem 2rem', borderRadius: '16px', cursor: 'pointer',
+            fontSize: '1.05rem', fontFamily: "'Inter', sans-serif",
+            display: 'flex', alignItems: 'center', gap: '0.5rem',
+            transition: 'transform 0.2s'
+          }}>
             Start Learning Free <ArrowRight size={18} />
           </button>
-          <button className="btn btn-ghost btn-lg" onClick={() => navigate('/auth')}>
-            Sign In
+          
+          <button style={{
+            background: 'white', color: '#0f172a', fontWeight: '600',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', border: '1px solid #e2e8f0',
+            padding: '1rem 2rem', borderRadius: '16px', cursor: 'pointer',
+            fontSize: '1.05rem', fontFamily: "'Inter', sans-serif",
+            display: 'flex', alignItems: 'center', gap: '0.5rem',
+            transition: 'transform 0.2s',
+            pointerEvents: 'none' // Demo button placeholder
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            View Demo
           </button>
         </div>
-
-        <div className="hero-stats">
-          {[
-            { val: '10K+', label: 'Active Students' },
-            { val: '2M+', label: 'Questions Solved' },
-            { val: '94%', label: 'Accuracy Improved' },
-            { val: '4.9★', label: 'Student Rating' },
-          ].map(({ val, label }) => (
-            <div key={label} className="hero-stat">
-              <h3>{val}</h3>
-              <p>{label}</p>
-            </div>
-          ))}
-        </div>
       </section>
-
-      {/* Exam Badges */}
-      <div style={{
-        display:'flex', justifyContent:'center', gap:'0.75rem',
-        flexWrap:'wrap', padding:'0 2rem 3rem', position:'relative', zIndex:1
-      }}>
-        <span style={{ fontSize:'0.82rem', color:'var(--text-muted)', alignSelf:'center' }}>Supports:</span>
-        {exams.map(e => (
-          <span key={e} className="badge badge-primary" style={{ fontSize:'0.82rem' }}>{e}</span>
-        ))}
-      </div>
 
       {/* Features Grid */}
       <section className="features-section">
         <div className="section-heading">
-          <div className="badge badge-primary" style={{ margin:'0 auto 1rem', width:'fit-content' }}>
-            🚀 All Features
+          <div className="badge badge-saffron" style={{ margin:'0 auto 1rem', width:'fit-content', fontFamily:"'Hind',sans-serif" }}>
+            🪷 सभी Features
           </div>
           <h2>Everything You Need to Crack Your Exam</h2>
-          <p>From personalized study plans to AI-powered analytics — we've got every aspect of your preparation covered.</p>
+          <p>Personalized study plans se lekar AI-powered analytics tak — हमने आपकी तैयारी का हर पहलू cover किया है।</p>
         </div>
 
         <div style={{
@@ -188,14 +265,20 @@ export default function LandingPage({ onLogin }) {
           margin:'0 auto',
           boxShadow:'var(--shadow-glow)'
         }}>
+          <div style={{ fontFamily:"'Hind',sans-serif", fontSize:'0.85rem', color:'var(--saffron-light)', marginBottom:'0.75rem', letterSpacing:'0.04em' }}>
+            ✦ आपकी सफलता, हमारा संकल्प ✦
+          </div>
           <h2 style={{ fontSize:'2rem', marginBottom:'1rem' }}>
-            Ready to Transform Your <span className="text-gradient">Preparation?</span>
+            Ready to Transform Your <span style={{ background:'var(--grad-saffron)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>Preparation?</span>
           </h2>
           <p style={{ color:'var(--text-secondary)', marginBottom:'2rem', fontSize:'1.05rem' }}>
-            Join thousands of students who improved their rank with NeuroLearn AI.
+            Thousands of students ne अपनी rank improve की है न्यूरोLearn AI के साथ। आप भी शुरू करें।
           </p>
-          <button className="btn btn-primary btn-lg" onClick={handleGetStarted} id="cta-join-btn">
-            Join for Free — No Credit Card <ArrowRight size={18} />
+          <button className="btn btn-lg" onClick={handleGetStarted} id="cta-join-btn" style={{
+            background:'var(--grad-saffron)', color:'white', fontWeight:'700',
+            boxShadow:'0 6px 25px var(--saffron-glow)'
+          }}>
+            <span style={{ fontFamily:"'Hind',sans-serif" }}>मुफ्त Join करें</span>&nbsp;— No Credit Card&nbsp;<ArrowRight size={18} />
           </button>
           <div style={{
             display:'flex', justifyContent:'center', gap:'1.5rem',
@@ -204,7 +287,7 @@ export default function LandingPage({ onLogin }) {
             {['Free to start','No ads','AI-powered','Offline mode'].map(t => (
               <span key={t} style={{ display:'flex', alignItems:'center', gap:'0.4rem',
                 fontSize:'0.82rem', color:'var(--text-secondary)' }}>
-                <CheckCircle size={14} color="var(--secondary)" /> {t}
+                <CheckCircle size={14} color="var(--saffron)" /> {t}
               </span>
             ))}
           </div>
@@ -214,13 +297,25 @@ export default function LandingPage({ onLogin }) {
       {/* Footer */}
       <footer style={{
         borderTop:'1px solid var(--border)',
-        padding:'2rem 5%',
+        padding:'2rem 4rem',
         display:'flex', justifyContent:'space-between', alignItems:'center',
-        fontSize:'0.82rem', color:'var(--text-muted)',
-        position:'relative', zIndex:1, flexWrap:'wrap', gap:'1rem'
+        fontSize:'0.9rem', color:'var(--text-secondary)',
+        position:'relative', zIndex:1, flexWrap:'wrap', gap:'1rem',
+        background: 'white'
       }}>
-        <span>© 2025 NeuroLearn AI. Built with ❤️ for Indian students.</span>
-        <span>"Don't just study hard. Study smart with AI."</span>
+        <div style={{ display:'flex', alignItems:'center', gap:'0.5rem' }}>
+          <span style={{ 
+              background: 'linear-gradient(to right, #2563eb, #06b6d4)', 
+              WebkitBackgroundClip: 'text', 
+              WebkitTextFillColor: 'transparent',
+              fontFamily: "'Hind', sans-serif",
+              fontWeight: 800
+          }}>विद्या</span>
+          <span style={{ fontFamily:"'Outfit',sans-serif", fontWeight:'900', color:'var(--text-primary)' }}>AI</span>
+          <span style={{ color:'var(--border)', margin:'0 10px' }}>|</span>
+          <span>© 2026 · DevClash NIT Raipur</span>
+        </div>
+        <span style={{ fontStyle:'italic' }}>"A retention-first AI system"</span>
       </footer>
     </div>
   )

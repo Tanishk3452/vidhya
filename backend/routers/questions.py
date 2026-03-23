@@ -5,11 +5,17 @@ Serves adaptive practice questions and records student answers.
 import uuid
 import random
 from typing import Optional, List
-from fastapi import APIRouter, Query
+from datetime import datetime
+from fastapi import APIRouter, Query, HTTPException
 from models.schemas import QuestionModel, SubmitAnswerRequest, SubmitAnswerResponse
-from models.db import record_attempt
+from models.db import record_attempt, get_weakest_topic, update_skill_on_attempt, get_user_attempts
+from services.ai_service import ai_service
 
 router = APIRouter(prefix="/api/questions", tags=["Adaptive Questions"])
+
+# Local cache extending static bank with generated AI questions
+if "QUESTION_BANK_CACHE" not in globals():
+    QUESTION_BANK_CACHE: List[QuestionModel] = []
 
 # ─── Question Bank ────────────────────────────────────────────────────────────
 QUESTION_BANK: List[QuestionModel] = [
@@ -95,6 +101,7 @@ QUESTION_BANK: List[QuestionModel] = [
     ),
 ]
 
+QUESTION_BANK_CACHE.extend(QUESTION_BANK)
 
 def get_next_difficulty(current: str, correct: bool) -> str:
     """Adaptive difficulty adjustment."""
@@ -128,17 +135,103 @@ async def get_questions(
     return bank[:count]
 
 
+@router.get("/next", response_model=QuestionModel)
+async def get_next_adaptive_question(
+    user_id: str = Query("demo-user-001"),
+    subject: Optional[str] = Query(None),
+    topic: Optional[str] = Query(None),
+    difficulty: Optional[str] = Query(None)
+):
+    """Deep adaptive engine: Identifies weakest topics and dynamically provides or generates questions via AI."""
+    weakest = get_weakest_topic(user_id, active_subject=subject)
+    
+    attempts = get_user_attempts(user_id)
+    attempted_ids = {a["question_id"] for a in attempts}
+    
+    attempts = get_user_attempts(user_id)
+    attempted_ids = {a["question_id"] for a in attempts}
+    
+    if topic:
+        # EXPLICIT TARGET MODE: Lock strictly to the user's requested topic
+        target_topic = topic
+        target_diff = difficulty or "Medium" # Baseline starting preference
+        
+        # Override with exact adaptive skill if the user has historical data on this exact topic
+        topic_attempts = [a for a in attempts if a["topic"] == topic]
+        if len(topic_attempts) >= 3:
+            corrects = sum(1 for a in topic_attempts if a["correct"])
+            ratio = corrects / len(topic_attempts)
+            if ratio < 0.4: target_diff = "Easy"
+            elif ratio > 0.75: target_diff = "Hard"
+            else: target_diff = "Medium"
+            
+    else:
+        # 1. Determine Target parameters globally
+        all_topics = list({q.topic for q in QUESTION_BANK_CACHE if (not subject or q.subject.lower() == subject.lower())})
+        if not all_topics: 
+            all_topics = ["Rotational Motion", "Organic Chemistry", "Probability"]
+
+        topic_attempts_count = {}
+        for a in attempts:
+            topic_attempts_count[a["topic"]] = topic_attempts_count.get(a["topic"], 0) + 1
+            
+        under_tested = [t for t in all_topics if topic_attempts_count.get(t, 0) < 2]
+        
+        if under_tested:
+            target_topic = random.choice(under_tested)
+            target_diff = "Medium"
+        elif weakest:
+            target_topic = weakest["topic"]
+            if weakest.get("skill_level") == "Weak": target_diff = "Easy"
+            elif weakest.get("skill_level") == "Strong": target_diff = "Hard"
+            else: target_diff = "Medium"
+            
+            # Anti-fatigue
+            last_3 = [a["topic"] for a in attempts[-3:]]
+            if len(last_3) == 3 and all(t == target_topic for t in last_3):
+                other_topics = [t for t in all_topics if t != target_topic]
+                if other_topics:
+                    target_topic = random.choice(other_topics)
+                    target_diff = "Medium"
+        else:
+            target_topic = random.choice(all_topics)
+            target_diff = "Medium"
+    
+
+    
+    available = [q for q in QUESTION_BANK_CACHE if q.topic == target_topic and q.difficulty == target_diff and q.id not in attempted_ids]
+    
+    if available:
+        return random.choice(available)
+        
+    # 3. If cache runs dry, call Gemini AI to uniquely generate a brand new specific question
+    print(f"  🤖 Prompting Gemini for new {target_diff} question on {target_topic}...")
+    ai_q_dict = ai_service.generate_adaptive_question(target_topic, target_diff)
+    
+    if ai_q_dict:
+        new_q = QuestionModel(**ai_q_dict)
+        QUESTION_BANK_CACHE.append(new_q)
+        return new_q
+        
+    # 4. Total fallback (Gemini down, cache dry) - just give any random unseen or easiest seen question
+    any_unseen = [q for q in QUESTION_BANK_CACHE if q.id not in attempted_ids]
+    if any_unseen:
+        return random.choice(any_unseen)
+    return random.choice(QUESTION_BANK_CACHE)
+
+
 @router.post("/submit", response_model=SubmitAnswerResponse)
 async def submit_answer(body: SubmitAnswerRequest):
-    """Submit an answer. Returns correctness, explanation, and next difficulty."""
-    q = next((x for x in QUESTION_BANK if x.id == body.question_id), None)
+    """Submit an answer. Updates UserSkill and returns correctness."""
+    q = next((x for x in QUESTION_BANK_CACHE if x.id == body.question_id), None)
     if not q:
-        # Graceful: assume first question if not found
-        q = QUESTION_BANK[0]
+        q = QUESTION_BANK_CACHE[0]
 
     correct = body.selected_index == q.correct_index
     xp_earned = q.xp_reward if correct else max(0, q.xp_reward // 4)
     next_diff = get_next_difficulty(q.difficulty, correct)
+    
+    current_skill = None
 
     if body.user_id:
         record_attempt({
@@ -149,7 +242,10 @@ async def submit_answer(body: SubmitAnswerRequest):
             "topic": q.topic,
             "correct": correct,
             "time_taken_seconds": body.time_taken_seconds,
+            "timestamp": datetime.utcnow().isoformat(),
         })
+        # Adaptively tune user internal metrics natively based on result
+        current_skill = update_skill_on_attempt(body.user_id, q.subject, q.topic, correct)
 
     return SubmitAnswerResponse(
         correct=correct,
@@ -157,6 +253,7 @@ async def submit_answer(body: SubmitAnswerRequest):
         explanation=q.explanation,
         xp_earned=xp_earned,
         new_difficulty=next_diff,
+        skill_level=current_skill
     )
 
 

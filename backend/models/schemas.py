@@ -56,10 +56,17 @@ class DaySchedule(BaseModel):
     slots: List[StudySlot]
 
 class StudyPlanResponse(BaseModel):
+    id: Optional[str] = None
+    created_at: Optional[str] = None
     plan: List[DaySchedule]
     title: str
     tips: List[str]
     time_allocation: Dict[str, float]  # subject -> percentage
+    exam: Optional[str] = "JEE Advanced"
+    weak_subjects: Optional[List[str]] = []
+
+class StudyPlanHistoryResponse(BaseModel):
+    history: List[StudyPlanResponse]
 
 
 # ─── Doubt Solver ────────────────────────────────────────────────────────────
@@ -104,6 +111,16 @@ class SubmitAnswerResponse(BaseModel):
     explanation: str
     xp_earned: int
     new_difficulty: Optional[str] = None  # adaptive adjustment
+    skill_level: Optional[str] = None     # Current calculated skill tier
+
+
+class UserSkillModel(BaseModel):
+    user_id: str
+    subject: str
+    topic: str
+    correct_count: int = 0
+    total_attempts: int = 0
+    skill_level: str = "Medium" # Weak, Medium, Strong
 
 
 # ─── Analytics ───────────────────────────────────────────────────────────────

@@ -28,29 +28,43 @@ export default function StudyPlanner() {
   const [generated, setGenerated] = useState(false)
   const [loading, setLoading] = useState(true)
   const [activeDay, setActiveDay] = useState('Monday')
-  const [planData, setPlanData] = useState([])  // Strictly populated dynamically now!
+  
+  // Track current plan and history
+  const [viewMode, setViewMode] = useState('generate') // generate, plan, history
+  const [planData, setPlanData] = useState([])
   const [planTips, setPlanTips] = useState([])
   const [planAllocation, setPlanAllocation] = useState({})
+  
+  const [historyPlans, setHistoryPlans] = useState([])
 
   useEffect(() => {
-    const fetchPlan = async () => {
+    const fetchPlanAndHistory = async () => {
       try {
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        const uid = user.id || "demo-user-001";
-        const res = await axios.get(`http://localhost:8000/api/study-plan?user_id=${uid}`);
+        const user = JSON.parse(localStorage.getItem('user') || '{}')
+        const uid = user.id || "demo-user-001"
+        
+        // Fetch active plan
+        const res = await axios.get(`http://localhost:8000/api/study-plan?user_id=${uid}`)
         if (res.data && res.data.plan && res.data.plan.length > 0) {
-          setPlanData(res.data.plan);
-          setPlanTips(res.data.tips || []);
-          setPlanAllocation(res.data.time_allocation || {});
-          setGenerated(true);
+          setPlanData(res.data.plan)
+          setPlanTips(res.data.tips || [])
+          setPlanAllocation(res.data.time_allocation || {})
+          setGenerated(true)
+          setViewMode('plan')
+        }
+        
+        // Fetch history
+        const histRes = await studyPlanAPI.getHistory(uid)
+        if (histRes.data && histRes.data.history) {
+          setHistoryPlans(histRes.data.history)
         }
       } catch (err) {
-        console.error("No active plan in MongoDB");
+        console.error("Failed to load plans", err)
       }
-      setLoading(false);
-    };
-    fetchPlan();
-  }, []);
+      setLoading(false)
+    }
+    fetchPlanAndHistory()
+  }, [])
 
   const toggleSubject = (s) => {
     setWeakSubjects(prev =>
@@ -70,15 +84,31 @@ export default function StudyPlanner() {
         exam_date: targetDate,
       })
       const data = res.data
-      if (data.plan && data.plan.length) setPlanData(data.plan)
-      if (data.tips && data.tips.length) setPlanTips(data.tips)
-      if (data.time_allocation) setPlanAllocation(data.time_allocation)
-      setGenerated(true)
+      if (data.plan && data.plan.length) {
+        setPlanData(data.plan)
+        setPlanTips(data.tips || [])
+        setPlanAllocation(data.time_allocation || {})
+        setGenerated(true)
+        setViewMode('plan')
+        
+        // Optimistically update history
+        const newHistoryItem = { ...data, created_at: new Date().toISOString() }
+        setHistoryPlans(prev => [newHistoryItem, ...prev])
+      }
     } catch (err) {
       console.error("Error generating AI Plan", err)
     } finally {
       setLoading(false)
     }
+  }
+
+  const loadHistoricalPlan = (histPlan) => {
+    setPlanData(histPlan.plan)
+    setPlanTips(histPlan.tips || [])
+    setPlanAllocation(histPlan.time_allocation || {})
+    setExam(histPlan.exam || 'JEE Advanced')
+    setGenerated(true)
+    setViewMode('plan')
   }
 
   const displayPlan = planData
@@ -87,8 +117,24 @@ export default function StudyPlanner() {
   if (loading) return <div className="p-8 flex items-center justify-center"><Loader2 className="animate-spin w-8 h-8 text-white" /></div>;
 
   return (
-    <div style={{ animation:'fadeInUp 0.5s ease' }}>
-      {!generated ? (
+    <div style={{ animation:'fadeInUp 0.5s ease', padding: '1rem', maxWidth: '1000px', margin: '0 auto' }}>
+      
+      {/* View Mode Toggle / Header */}
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.5rem', background: 'var(--bg-surface)', padding: '0.5rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
+        <div style={{ display:'flex', gap:'0.5rem' }}>
+          <button onClick={() => setViewMode('generate')} className="btn" style={{ background: viewMode==='generate' ? 'var(--primary)' : 'transparent', color: viewMode==='generate' ? 'white' : 'var(--text-secondary)', padding:'0.5rem 1rem', borderRadius:'8px', fontWeight:600, border:'none', cursor:'pointer' }}>
+            ✨ Generate
+          </button>
+          <button onClick={() => setViewMode('plan')} className="btn" style={{ background: viewMode==='plan' ? 'var(--primary)' : 'transparent', color: viewMode==='plan' ? 'white' : 'var(--text-secondary)', padding:'0.5rem 1rem', borderRadius:'8px', fontWeight:600, border:'none', cursor:'pointer' }} disabled={!generated}>
+            ✅ Current Plan
+          </button>
+          <button onClick={() => setViewMode('history')} className="btn" style={{ background: viewMode==='history' ? 'var(--primary)' : 'transparent', color: viewMode==='history' ? 'white' : 'var(--text-secondary)', padding:'0.5rem 1rem', borderRadius:'8px', fontWeight:600, border:'none', cursor:'pointer' }}>
+            🕒 History ({historyPlans.length})
+          </button>
+        </div>
+      </div>
+
+      {viewMode === 'generate' && (
         <div style={{ maxWidth:'700px', margin:'0 auto' }}>
           <div className="card" style={{ marginBottom:'1.5rem' }}>
             <div style={{ display:'flex', alignItems:'center', gap:'1rem', marginBottom:'1.5rem' }}>
@@ -188,13 +234,15 @@ export default function StudyPlanner() {
             </div>
           </div>
         </div>
-      ) : (
+      )}
+
+      {viewMode === 'plan' && (
         <div>
           {/* Plan Header */}
           <div className="card mb-3" style={{ background:'linear-gradient(135deg, rgba(108,99,255,0.12), rgba(180,78,255,0.08))' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:'1rem' }}>
               <div>
-                <div className="badge badge-primary" style={{ marginBottom:'0.5rem' }}>
+                <div className="badge" style={{ marginBottom:'0.5rem', background: 'var(--primary-dark)', color: 'white' }}>
                   ✨ AI-Generated Plan
                 </div>
                 <h2 style={{ fontSize:'1.4rem', fontWeight:'800', fontFamily:"'Outfit',sans-serif", marginBottom:'0.25rem' }}>
@@ -205,8 +253,7 @@ export default function StudyPlanner() {
                 </p>
               </div>
               <div style={{ display:'flex', gap:'0.75rem' }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => setGenerated(false)}>Regenerate</button>
-                <button className="btn btn-primary btn-sm">Save Plan</button>
+                <button className="btn" style={{ background:'white', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:'0.4rem 1rem', fontWeight:600, cursor:'pointer' }} onClick={() => setViewMode('generate')}>Generate New</button>
               </div>
             </div>
           </div>
@@ -296,6 +343,50 @@ export default function StudyPlanner() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {viewMode === 'history' && (
+        <div style={{ maxWidth:'800px', margin:'0 auto' }}>
+          <h2 style={{ fontSize:'1.4rem', fontWeight:'800', fontFamily:"'Outfit',sans-serif", marginBottom:'1rem' }}>Your Past Study Plans</h2>
+          {historyPlans.length === 0 ? (
+            <div className="card" style={{ padding:'3rem', textAlign:'center', color:'var(--text-muted)' }}>
+              <Calendar size={48} style={{ margin:'0 auto 1rem', opacity:0.3 }} />
+              <p>You haven't generated any study plans yet.</p>
+              <button 
+                className="btn btn-primary" 
+                style={{ marginTop: '1rem', padding: '0.6rem 1.2rem', borderRadius: 'var(--radius-md)' }}
+                onClick={() => setViewMode('generate')}
+              >
+                Create Your First Plan
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+              {historyPlans.map((plan, i) => (
+                <div key={plan.id || i} className="card" style={{ display:'flex', flexDirection:'column', padding: '1.25rem', transition: 'transform 0.2s', cursor: 'pointer', border: '1px solid var(--border)' }} onClick={() => loadHistoricalPlan(plan)}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'0.75rem' }}>
+                    <span className="badge" style={{ background: 'rgba(37,99,235,0.1)', color: 'var(--primary)', fontWeight: 600 }}>{plan.exam || 'Exam Focus'}</span>
+                    <span style={{ fontSize:'0.75rem', color:'var(--text-muted)' }}>
+                      {plan.created_at ? new Date(plan.created_at).toLocaleDateString() : 'Previously Generated'}
+                    </span>
+                  </div>
+                  
+                  <h3 style={{ fontSize:'1.1rem', fontWeight:'700', marginBottom:'0.5rem', color: 'var(--text-primary)' }}>{plan.title || "AI Study Schedule"}</h3>
+                  
+                  <div style={{ flex: 1, marginBottom: '1rem' }}>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                      <strong>Focus Areas:</strong> {(plan.weak_subjects || []).join(', ') || 'Mixed Subjects'}
+                    </p>
+                  </div>
+                  
+                  <button style={{ width: '100%', background: 'var(--bg-base)', border: '1px solid var(--border)', padding: '0.5rem', borderRadius: '6px', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                    Load this plan →
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
