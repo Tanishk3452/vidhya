@@ -12,6 +12,14 @@ const features = [
   { icon: '⚡', text: 'Offline AI support' },
 ]
 
+// Saves user + token and notifies all components
+const saveAndNotify = (token, user) => {
+  localStorage.setItem('neurolearn_token', token)
+  localStorage.setItem('neurolearn_user', JSON.stringify(user))
+  // Dispatch so Header/Sidebar update immediately without page refresh
+  window.dispatchEvent(new Event('storage'))
+}
+
 export default function AuthPage({ onLogin }) {
   const navigate = useNavigate()
   const [mode, setMode] = useState('login')
@@ -35,8 +43,7 @@ export default function AuthPage({ onLogin }) {
         res = await authAPI.register({ name, email, password, exam })
       }
       const { access_token, user } = res.data
-      localStorage.setItem('neurolearn_token', access_token)
-      localStorage.setItem('neurolearn_user', JSON.stringify(user))  // ← must be neurolearn_user
+      saveAndNotify(access_token, user)
       onLogin()
       navigate('/dashboard')
     } catch (err) {
@@ -53,12 +60,21 @@ export default function AuthPage({ onLogin }) {
     try {
       const res = await authAPI.login({ email: 'aryan@neurolearn.ai', password: 'demo1234' })
       const { access_token, user } = res.data
-      localStorage.setItem('neurolearn_token', access_token)
-      localStorage.setItem('neurolearn_user', JSON.stringify(user))
+      saveAndNotify(access_token, user)
       onLogin()
       navigate('/dashboard')
     } catch (err) {
-      // Backend offline — still allow demo access
+      // Backend offline — save a minimal guest user so UI isn't blank
+      const guestUser = {
+        id: 'demo-user-001',
+        name: 'Demo User',
+        email: 'aryan@neurolearn.ai',
+        exam: 'JEE Advanced',
+        xp: 0,
+        streak: 0,
+        level: 1,
+      }
+      saveAndNotify('', guestUser)
       onLogin()
       navigate('/dashboard')
     } finally {
@@ -74,17 +90,12 @@ export default function AuthPage({ onLogin }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '3rem' }}>
             <span style={{
               fontFamily: "'Hind', 'Outfit', sans-serif",
-              fontWeight: '900',
-              fontSize: '2.2rem',
-              letterSpacing: '-0.02em',
-              display: 'flex',
-              alignItems: 'baseline'
+              fontWeight: '900', fontSize: '2.2rem',
+              letterSpacing: '-0.02em', display: 'flex', alignItems: 'baseline'
             }}>
               <span style={{
                 background: 'linear-gradient(to right, #2563eb, #06b6d4)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                paddingRight: '2px'
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', paddingRight: '2px'
               }}>विद्या</span>
               <span style={{ color: 'var(--text-primary)' }}>AI</span>
             </span>
@@ -92,7 +103,8 @@ export default function AuthPage({ onLogin }) {
 
           <h2 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.75rem', fontFamily: "'Outfit',sans-serif", color: 'var(--text-primary)' }}>
             <span style={{ fontFamily: "'Inter',sans-serif", display: 'block', fontSize: '0.45em', color: 'var(--primary-light)', fontWeight: '600', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Your AI Learning Companion</span>
-            Don't just study hard.<br /><span style={{ background: 'var(--grad-primary)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Study smart.</span>
+            Don't just study hard.<br />
+            <span style={{ background: 'var(--grad-primary)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Study smart.</span>
           </h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem', lineHeight: '1.7' }}>
             A retention-first AI system that remembers what you studied, adapts to your pace, and autonomously ensures nothing is forgotten.
@@ -111,8 +123,7 @@ export default function AuthPage({ onLogin }) {
             marginTop: '3rem', padding: '1.25rem',
             background: 'rgba(37, 99, 235, 0.05)',
             border: '1px solid rgba(37, 99, 235, 0.15)',
-            borderRadius: 'var(--radius-lg)',
-            position: 'relative'
+            borderRadius: 'var(--radius-lg)', position: 'relative'
           }}>
             <div style={{ fontSize: '1.5rem', color: 'var(--primary)', opacity: 0.3, lineHeight: 1, marginBottom: '0.4rem' }}>"</div>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontStyle: 'italic', lineHeight: '1.6', fontFamily: "'Inter',sans-serif" }}>
@@ -138,7 +149,7 @@ export default function AuthPage({ onLogin }) {
             {[['login', 'Sign In'], ['register', 'Sign Up']].map(([m, label]) => (
               <button
                 key={m}
-                onClick={() => setMode(m)}
+                onClick={() => { setMode(m); setError('') }}
                 style={{
                   flex: 1, padding: '0.55rem', borderRadius: '8px',
                   fontWeight: '600', fontSize: '0.88rem', transition: 'var(--transition)',
@@ -165,13 +176,8 @@ export default function AuthPage({ onLogin }) {
               <div>
                 <label className="input-label">Full Name</label>
                 <input
-                  className="input-field"
-                  type="text"
-                  placeholder="John Doe"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  required
-                  id="name-input"
+                  className="input-field" type="text" placeholder="John Doe"
+                  value={name} onChange={e => setName(e.target.value)} required
                 />
               </div>
             )}
@@ -179,13 +185,8 @@ export default function AuthPage({ onLogin }) {
             <div>
               <label className="input-label">Email Address</label>
               <input
-                className="input-field"
-                type="email"
-                placeholder="john@example.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                id="email-input"
+                className="input-field" type="email" placeholder="john@example.com"
+                value={email} onChange={e => setEmail(e.target.value)} required
               />
             </div>
 
@@ -196,15 +197,11 @@ export default function AuthPage({ onLogin }) {
                   className="input-field"
                   type={showPass ? 'text' : 'password'}
                   placeholder="••••••••"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
-                  id="password-input"
-                  style={{ paddingRight: '2.5rem' }}
+                  value={password} onChange={e => setPassword(e.target.value)}
+                  required style={{ paddingRight: '2.5rem' }}
                 />
                 <button
-                  type="button"
-                  onClick={() => setShowPass(!showPass)}
+                  type="button" onClick={() => setShowPass(!showPass)}
                   style={{
                     position: 'absolute', right: '0.75rem', top: '50%',
                     transform: 'translateY(-50%)', background: 'none', border: 'none',
@@ -220,10 +217,8 @@ export default function AuthPage({ onLogin }) {
               <div>
                 <label className="input-label">Target Exam</label>
                 <select
-                  className="input-field"
-                  value={exam}
+                  className="input-field" value={exam}
                   onChange={e => setExam(e.target.value)}
-                  id="exam-select"
                 >
                   {examOptions.map(e => <option key={e} value={e}>{e}</option>)}
                 </select>
@@ -243,39 +238,32 @@ export default function AuthPage({ onLogin }) {
             )}
 
             <button
-              type="submit"
-              className="btn btn-primary"
-              id="auth-submit-btn"
+              type="submit" className="btn btn-primary"
               style={{ width: '100%', padding: '0.85rem', marginTop: '0.5rem', fontSize: '0.95rem' }}
               disabled={loading}
             >
               {loading ? (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
                   <span className="spinner" style={{ width: '16px', height: '16px' }} />
                   {mode === 'login' ? 'Signing in...' : 'Creating account...'}
                 </span>
               ) : (
-                <>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
                   {mode === 'login' ? 'Sign In' : 'Create Account'}
                   <ArrowRight size={17} />
-                </>
+                </span>
               )}
             </button>
 
             {mode === 'login' && (
               <button
-                type="button"
-                id="demo-login-btn"
-                onClick={handleDemoLogin}
-                disabled={loading}
+                type="button" onClick={handleDemoLogin} disabled={loading}
                 style={{
-                  width: '100%', padding: '0.75rem',
-                  borderRadius: 'var(--radius-md)',
+                  width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-md)',
                   background: 'rgba(37, 99, 235, 0.05)',
                   border: '1px solid rgba(37, 99, 235, 0.2)',
                   color: 'var(--primary-dark)', fontWeight: '700',
-                  fontSize: '0.88rem', cursor: 'pointer',
-                  transition: 'var(--transition)'
+                  fontSize: '0.88rem', cursor: 'pointer', transition: 'var(--transition)'
                 }}
               >
                 ⚡ Try Demo Account
@@ -286,7 +274,7 @@ export default function AuthPage({ onLogin }) {
           <div style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
             {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
             <span
-              onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+              onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError('') }}
               style={{ color: 'var(--primary-light)', fontWeight: '700', cursor: 'pointer' }}
             >
               {mode === 'login' ? 'Sign Up' : 'Sign In'}

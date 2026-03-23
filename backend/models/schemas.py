@@ -2,9 +2,8 @@
 NeuroLearn AI — Pydantic Schemas
 All request/response models for the API.
 """
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
-from datetime import datetime
 
 
 # ─── Auth ────────────────────────────────────────────────────────────────────
@@ -49,7 +48,8 @@ class StudySlot(BaseModel):
     subject: str
     topic: str
     duration: str
-    type: str  # Study / Practice / Revision / Test / Rest
+    type: str                    # Study / Practice / Revision / Test / Rest
+    completed: bool = False      # ← FIX: track tick completion
 
 class DaySchedule(BaseModel):
     day: str
@@ -61,7 +61,7 @@ class StudyPlanResponse(BaseModel):
     plan: List[DaySchedule]
     title: str
     tips: List[str]
-    time_allocation: Dict[str, float]  # subject -> percentage
+    time_allocation: Dict[str, float]
     exam: Optional[str] = "JEE Advanced"
     weak_subjects: Optional[List[str]] = []
 
@@ -91,7 +91,7 @@ class QuestionModel(BaseModel):
     id: str
     subject: str
     topic: str
-    difficulty: str  # Easy / Medium / Hard
+    difficulty: str
     question: str
     options: List[str]
     correct_index: int
@@ -110,9 +110,8 @@ class SubmitAnswerResponse(BaseModel):
     correct_index: int
     explanation: str
     xp_earned: int
-    new_difficulty: Optional[str] = None  # adaptive adjustment
-    skill_level: Optional[str] = None     # Current calculated skill tier
-
+    new_difficulty: Optional[str] = None
+    skill_level: Optional[str] = None
 
 class UserSkillModel(BaseModel):
     user_id: str
@@ -120,7 +119,7 @@ class UserSkillModel(BaseModel):
     topic: str
     correct_count: int = 0
     total_attempts: int = 0
-    skill_level: str = "Medium" # Weak, Medium, Strong
+    skill_level: str = "Medium"
 
 
 # ─── Analytics ───────────────────────────────────────────────────────────────

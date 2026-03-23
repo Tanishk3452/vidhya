@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  BookOpen, Target, Clock, TrendingUp,
+  BookOpen, Target, Clock,
   ChevronRight, CheckCircle, XCircle, Loader2, Zap
 } from 'lucide-react'
-import axios from 'axios'
-
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+import { analyticsAPI, studyPlanAPI } from '../services/api'
 
 function StatCard({ icon, label, value, change, color, bg }) {
   return (
@@ -27,20 +25,53 @@ function StatCard({ icon, label, value, change, color, bg }) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const [data, setData] = useState(null)
+  const [summary, setSummary] = useState(null)
+  const [topicBreakdown, setTopicBreakdown] = useState([])
+  const [recentActivity, setRecentActivity] = useState([])
+  const [todaySchedule, setTodaySchedule] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('neurolearn_user') || '{}')
-    const uid = user.id || 'demo-user-001'
-    const token = localStorage.getItem('neurolearn_token')
-    const headers = token ? { Authorization: `Bearer ${token}` } : {}
+  // Read stored user — same way Analytics does it
+  const storedUser = (() => {
+    try { return JSON.parse(localStorage.getItem('neurolearn_user') || '{}') } catch { return {} }
+  })()
+  const uid = storedUser.id || 'demo-user-001'
+  const userName = storedUser.name || 'Student'
+  const userExam = storedUser.exam || 'your exam'
+  const userLevel = storedUser.level || 1
 
-    axios.get(`${BASE_URL}/api/dashboard/summary?user_id=${uid}`, { headers })
-      .then(res => setData(res.data))
-      .catch(console.error)
+  // REPLACE your useEffect with this:
+  useEffect(() => {
+    Promise.all([
+      analyticsAPI.getSummary(uid),
+      analyticsAPI.getTopicBreakdown(uid),
+    ])
+      .then(([sumRes, topicsRes]) => {
+        setSummary(sumRes.data || {})
+        const topics = Array.isArray(topicsRes.data) ? topicsRes.data : []
+        setTopicBreakdown(topics)
+        setRecentActivity(topics.slice(0, 5).map(t => ({
+          subject: t.subject,
+          topic: t.topic,
+          score_percent: t.score_percent,
+        })))
+      })
+      .catch(err => {
+        console.error('Dashboard load error:', err)
+        setSummary({})
+      })
       .finally(() => setLoading(false))
-  }, [])
+
+    // Load today's schedule separately so it doesn't break everything if it fails
+    studyPlanAPI.get(uid)
+      .then(res => {
+        const plan = res.data?.plan || []
+        const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' })
+        const todayDay = plan.find(d => d.day === todayName)
+        setTodaySchedule(todayDay?.slots || [])
+      })
+      .catch(() => setTodaySchedule([]))
+  }, [uid])
 
   if (loading) return (
     <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
@@ -48,83 +79,100 @@ export default function Dashboard() {
     </div>
   )
 
-  if (!data) return (
-    <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
-      Failed to load dashboard. Is the backend running?
-    </div>
-  )
+  // ── Same safe fallbacks Analytics uses ───────────────────────────────────
+  const totalQuestions = summary?.total_questions ?? 0
+  const correctAnswers = summary?.correct_answers ?? 0
+  const accuracyPercent = summary?.accuracy_percent ?? 0
+  const avgSpeed = summary?.avg_speed_seconds ?? 0
+  const streak = summary?.study_streak ?? storedUser.streak ?? 0
+  const totalXp = storedUser.xp ?? 0
+  const level = storedUser.level ?? 1
 
-  const { user, stats, subject_stats, recent_activity, today_schedule, exam } = data
   const dailyGoal = 50
-  const progress = Math.min(100, Math.round((stats.total_questions / dailyGoal) * 100))
+  const progress = Math.min(100, Math.round((totalQuestions / dailyGoal) * 100))
 
-  // Subject color map
+  // Subject breakdown — same computation as Analytics
+  const subjMap = { Physics: 0, Chemistry: 0, Mathematics: 0, Biology: 0 }
+  topicBreakdown.forEach(t => {
+    if (t.subject in subjMap) subjMap[t.subject] += (t.questions_attempted || 0)
+  })
+  const subjectStats = topicBreakdown.reduce((acc, t) => {
+    if (!acc[t.subject]) acc[t.subject] = { total: 0, correct: 0 }
+    acc[t.subject].total += t.questions_attempted || 0
+    acc[t.subject].correct += t.correct || 0
+    return acc
+  }, {})
+
+  const subjectRows = Object.entries(subjectStats).map(([subject, v]) => ({
+    subject,
+    accuracy: v.total ? Math.round((v.correct / v.total) * 100) : 0,
+    attempted: v.total,
+  }))
+
   const subjectColors = {
-    Physics: { color: 'var(--primary-light)', bg: 'rgba(108,99,255,0.15)', emoji: '⚛️' },
-    Chemistry: { color: 'var(--secondary)', bg: 'rgba(0,212,170,0.15)', emoji: '🧪' },
-    Mathematics: { color: 'var(--accent)', bg: 'rgba(255,107,107,0.15)', emoji: '📐' },
+    Physics: { color: 'var(--primary-light)', emoji: '⚛️' },
+    Chemistry: { color: 'var(--secondary)', emoji: '🧪' },
+    Mathematics: { color: 'var(--accent)', emoji: '📐' },
+    Biology: { color: '#22c55e', emoji: '🧬' },
   }
 
-  // Slot type badge color
-  const slotBadge = { Study: 'primary', Practice: 'secondary', Test: 'accent', Revision: 'warning', Rest: 'default' }
+  const slotBadge = {
+    Study: 'primary', Practice: 'secondary',
+    Test: 'accent', Revision: 'warning', Rest: 'default',
+  }
 
   return (
     <div style={{ animation: 'fadeInUp 0.5s ease' }}>
 
-      {/* Welcome Banner */}
+      {/* Welcome */}
       <div style={{ marginBottom: '1.5rem' }}>
         <h2 style={{ fontSize: '1.4rem', fontWeight: '700' }}>
-          Welcome back, {user?.name?.split(' ')[0] || 'Student'} 👋
+          Welcome back, {userName.split(' ')[0]} 👋
         </h2>
         <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem', fontSize: '0.9rem' }}>
           Preparing for{' '}
-          <strong style={{ color: 'var(--primary-light)' }}>{exam || 'your exam'}</strong>
-          {' '}· Level {user?.level || 1}
+          <strong style={{ color: 'var(--primary-light)' }}>{userExam}</strong>
+          {' '}· Level {level}
         </p>
       </div>
 
-      {/* Stat Cards — all real data */}
+      {/* Stat Cards — same data source as Analytics summary */}
       <div className="grid-4 mb-3">
         <StatCard
-          icon={<Target size={22} />}
-          label="Overall Accuracy"
-          value={`${stats.accuracy_percent}%`}
-          change={stats.total_questions > 0 ? `${stats.correct_answers} correct` : 'No data yet'}
+          icon={<Target size={22} />} label="Overall Accuracy"
+          value={`${accuracyPercent}%`}
+          change={totalQuestions > 0 ? `${correctAnswers} correct` : 'No data yet'}
           color="var(--primary-light)" bg="rgba(108,99,255,0.15)"
         />
         <StatCard
-          icon={<BookOpen size={22} />}
-          label="Questions Done"
-          value={stats.total_questions}
-          change={stats.total_questions > 0 ? 'Keep going!' : 'Start now!'}
+          icon={<BookOpen size={22} />} label="Questions Done"
+          value={totalQuestions}
+          change={totalQuestions > 0 ? 'Keep going!' : 'Start now!'}
           color="var(--secondary)" bg="rgba(0,212,170,0.15)"
         />
         <StatCard
-          icon={<Clock size={22} />}
-          label="Study Streak"
-          value={`${stats.streak} Days`}
-          change={stats.streak > 0 ? `${stats.streak} 🔥` : 'Start your streak!'}
+          icon={<Clock size={22} />} label="Study Streak"
+          value={`${streak} Days`}
+          change={streak > 0 ? `${streak} 🔥` : 'Start your streak!'}
           color="var(--warning)" bg="rgba(255,217,61,0.15)"
         />
         <StatCard
-          icon={<Zap size={22} />}
-          label="Total XP"
-          value={stats.total_xp}
-          change={`Level ${stats.level}`}
+          icon={<Zap size={22} />} label="Total XP"
+          value={totalXp}
+          change={`Level ${level}`}
           color="#b44eff" bg="rgba(180,78,255,0.15)"
         />
       </div>
 
       <div className="grid-2 mb-3">
 
-        {/* Today's Progress + Schedule */}
+        {/* Progress + Schedule */}
         <div className="card">
           <div className="flex items-center justify-between mb-2">
             <h3 style={{ fontSize: '1.05rem', fontWeight: '700' }}>Today's Progress</h3>
-            <span className="badge badge-primary">Day {stats.streak || 1} 🔥</span>
+            <span className="badge badge-primary">Day {streak || 1} 🔥</span>
           </div>
 
-          {/* Daily goal progress bar */}
           <div style={{ marginBottom: '1.25rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.5rem' }}>
               <span style={{ color: 'var(--text-muted)' }}>Daily Goal ({dailyGoal} Qs)</span>
@@ -135,12 +183,12 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Today's schedule from study plan */}
           <h4 style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Today's Schedule
           </h4>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {today_schedule.length > 0 ? today_schedule.map((slot, i) => (
+            {todaySchedule.length > 0 ? todaySchedule.map((slot, i) => (
               <div key={i} style={{
                 display: 'flex', alignItems: 'center', gap: '0.75rem',
                 padding: '0.6rem 0', borderBottom: '1px solid var(--border)'
@@ -149,13 +197,19 @@ export default function Dashboard() {
                   {slot.time}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: '600', fontSize: '0.85rem' }}>{slot.subject}</div>
+                  <div style={{
+                    fontWeight: '600', fontSize: '0.85rem',
+                    textDecoration: slot.completed ? 'line-through' : 'none',
+                    color: slot.completed ? 'var(--text-muted)' : 'var(--text-primary)'
+                  }}>
+                    {slot.subject}
+                  </div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                     {slot.topic} · {slot.duration}
                   </div>
                 </div>
                 <span className={`badge badge-${slotBadge[slot.type] || 'default'}`} style={{ fontSize: '0.66rem' }}>
-                  {slot.type}
+                  {slot.completed ? '✓ Done' : slot.type}
                 </span>
               </div>
             )) : (
@@ -173,10 +227,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Right column: Quick Actions + Recent Activity */}
+        {/* Quick Actions + Recent Activity */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-          {/* Quick Actions */}
           <div className="card" style={{ padding: '1.25rem' }}>
             <h3 style={{ fontSize: '1.05rem', fontWeight: '700', marginBottom: '1rem' }}>Quick Actions</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -186,15 +238,12 @@ export default function Dashboard() {
                 { icon: '📊', label: 'View Analytics', path: '/analytics' },
                 { icon: '📈', label: 'Predict Rank', path: '/rank' },
               ].map(({ icon, label, path }) => (
-                <button
-                  key={label}
-                  onClick={() => navigate(path)}
-                  style={{
-                    background: 'var(--bg-glass)', border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-md)', padding: '1rem',
-                    cursor: 'pointer', transition: 'var(--transition)', textAlign: 'center',
-                    color: 'var(--text-primary)', fontWeight: '600', fontSize: '0.85rem'
-                  }}
+                <button key={label} onClick={() => navigate(path)} style={{
+                  background: 'var(--bg-glass)', border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-md)', padding: '1rem',
+                  cursor: 'pointer', transition: 'var(--transition)', textAlign: 'center',
+                  color: 'var(--text-primary)', fontWeight: '600', fontSize: '0.85rem'
+                }}
                   onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--border-glow)'; e.currentTarget.style.transform = 'scale(1.03)' }}
                   onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'scale(1)' }}
                 >
@@ -205,16 +254,16 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Recent Activity — real data */}
+          {/* Recent Activity — from topic breakdown */}
           <div className="card" style={{ flex: 1, padding: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: '700', marginBottom: '1rem' }}>Recent Activity</h3>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: '700', marginBottom: '1rem' }}>Recent Topics Practiced</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {recent_activity.length > 0 ? recent_activity.map((a, i) => (
+              {recentActivity.length > 0 ? recentActivity.map((a, i) => (
                 <div key={i} style={{
                   display: 'flex', gap: '0.75rem', alignItems: 'center',
                   paddingBottom: '0.6rem', borderBottom: '1px solid var(--border)'
                 }}>
-                  {a.correct
+                  {a.score_percent >= 50
                     ? <CheckCircle size={15} style={{ color: 'var(--secondary)', flexShrink: 0 }} />
                     : <XCircle size={15} style={{ color: 'var(--accent)', flexShrink: 0 }} />
                   }
@@ -224,9 +273,9 @@ export default function Dashboard() {
                   </div>
                   <span style={{
                     fontSize: '0.72rem', fontWeight: '700',
-                    color: a.correct ? 'var(--secondary)' : 'var(--accent)'
+                    color: a.score_percent >= 50 ? 'var(--secondary)' : 'var(--accent)'
                   }}>
-                    {a.correct ? '+XP' : 'Wrong'}
+                    {a.score_percent}%
                   </span>
                 </div>
               )) : (
@@ -239,7 +288,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Subject Progress — real data from DB */}
+      {/* Subject Progress — same computation as Analytics */}
       <div className="card">
         <div className="flex items-center justify-between mb-2">
           <h3 style={{ fontSize: '1.05rem', fontWeight: '700' }}>Subject-wise Progress</h3>
@@ -248,16 +297,19 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {subject_stats.length > 0 ? (
+        {subjectRows.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1.5rem' }}>
-            {subject_stats.map(({ subject, accuracy, attempted }) => {
-              const sc = subjectColors[subject] || { color: 'var(--primary-light)', bg: 'rgba(108,99,255,0.15)', emoji: '📚' }
+            {subjectRows.map(({ subject, accuracy, attempted }) => {
+              const sc = subjectColors[subject] || { color: 'var(--primary-light)', emoji: '📚' }
               return (
                 <div key={subject} style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{sc.emoji}</div>
                   <div style={{ fontWeight: '700', marginBottom: '0.35rem', fontSize: '0.9rem' }}>{subject}</div>
                   <div className="progress-bar" style={{ marginBottom: '0.35rem' }}>
-                    <div className="progress-fill" style={{ width: `${accuracy}%`, background: `linear-gradient(90deg, ${sc.color}, ${sc.color}88)` }} />
+                    <div className="progress-fill" style={{
+                      width: `${accuracy}%`,
+                      background: `linear-gradient(90deg, ${sc.color}, ${sc.color}88)`
+                    }} />
                   </div>
                   <div style={{ fontSize: '0.8rem', color: sc.color, fontWeight: '700' }}>{accuracy}%</div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{attempted} questions</div>
@@ -267,11 +319,14 @@ export default function Dashboard() {
           </div>
         ) : (
           <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-            No subject data yet. Go to{' '}
-            <button className="btn btn-ghost btn-sm" style={{ display: 'inline', padding: 0 }} onClick={() => navigate('/questions')}>
-              Practice Questions
+            No subject data yet.{' '}
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ display: 'inline', padding: 0 }}
+              onClick={() => navigate('/questions')}
+            >
+              Start practicing →
             </button>
-            {' '}to start tracking!
           </div>
         )}
       </div>

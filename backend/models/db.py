@@ -25,7 +25,41 @@ except ImportError:
 
 
 # ─── Seed data ───────────────────────────────────────────────────────────────
+# ADD THIS FUNCTION to models/db.py
+# and ADD THIS IMPORT to main.py: from models.db import seed_demo_user
+# and ADD THIS CALL in lifespan: seed_demo_user()
 
+def seed_demo_user():
+    """
+    Creates the demo user account so demo login works.
+    No fake attempts are seeded — all data starts from zero.
+    """
+    from passlib.context import CryptContext
+    pwd_ctx = CryptContext(schemes=["sha256_crypt"], deprecated="auto")
+
+    demo = {
+        "id": "demo-user-001",
+        "name": "Aryan Sharma",
+        "email": "aryan@neurolearn.ai",
+        "hashed_password": pwd_ctx.hash("demo1234"),
+        "exam": "JEE Advanced",
+        "xp": 0,
+        "streak": 0,
+        "level": 1,
+        "created_at": "2025-01-01T00:00:00",
+    }
+
+    # Only add if not already present (avoid overwriting real data)
+    if demo["email"] not in users_db:
+        users_db[demo["email"]] = demo
+
+    if mongodb_available:
+        try:
+            db = get_db()
+            if not db.users.find_one({"email": demo["email"]}):
+                db.users.insert_one(demo.copy())
+        except:
+            pass
 
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────

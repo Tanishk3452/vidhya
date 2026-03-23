@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # Routers
 from routers.dashboard import router as dashboard_router
+from models.db import seed_demo_user  
 from routers.auth import router as auth_router
 from routers.study_plan import router as study_plan_router
 from routers.doubt import router as doubt_router
@@ -38,6 +39,7 @@ async def lifespan(app: FastAPI):
     print("  📄 ReDoc     : http://localhost:8000/redoc")
 
     print("═" * 55 + "\n")
+    seed_demo_user()   
     yield
     # Shutdown
     print("NeuroLearn AI Backend — Shutting down.")
