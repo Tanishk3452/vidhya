@@ -28,10 +28,10 @@ const axisStyles = { x: { grid: gridStyle, ticks: tickStyle }, y: { grid: gridSt
 
 function ChartCard({ title, subtitle, children }) {
   return (
-    <div className="card" style={{ padding:'1.5rem' }}>
-      <div style={{ marginBottom:'1rem' }}>
-        <h3 style={{ fontSize:'1rem', fontWeight:'700' }}>{title}</h3>
-        {subtitle && <p style={{ fontSize:'0.78rem', color:'var(--text-muted)', marginTop:'0.2rem' }}>{subtitle}</p>}
+    <div className="card" style={{ padding: '1.5rem' }}>
+      <div style={{ marginBottom: '1rem' }}>
+        <h3 style={{ fontSize: '1rem', fontWeight: '700' }}>{title}</h3>
+        {subtitle && <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{subtitle}</p>}
       </div>
       <div className="chart-container">
         {children}
@@ -42,11 +42,11 @@ function ChartCard({ title, subtitle, children }) {
 
 export default function Analytics() {
   const [stats, setStats] = useState(null);
-  
+
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const uid = user.id || "demo-user-001";
-    
+    const user = JSON.parse(localStorage.getItem('neurolearn_user') || '{}')
+    const uid = user.id || 'demo-user-001'
+
     Promise.all([
       analyticsAPI.getSummary(uid),
       analyticsAPI.getAccuracyTrend(uid),
@@ -118,13 +118,13 @@ export default function Analytics() {
     datasets: [
       {
         label: 'Your Performance',
-        data: radarData.student || [0,0,0,0,0,0],
+        data: radarData.student || [0, 0, 0, 0, 0, 0],
         borderColor: '#6c63ff', backgroundColor: 'rgba(108,99,255,0.12)',
         pointBackgroundColor: '#6c63ff', borderWidth: 2, pointRadius: 4,
       },
       {
         label: 'Topper Average',
-        data: radarData.topper || [88,85,90,85,92,88],
+        data: radarData.topper || [88, 85, 90, 85, 92, 88],
         borderColor: '#00d4aa', backgroundColor: 'rgba(0,212,170,0.05)',
         pointBackgroundColor: '#00d4aa', borderWidth: 2, pointRadius: 4,
       }
@@ -133,16 +133,16 @@ export default function Analytics() {
 
   const subjMap = { 'Physics': 0, 'Chemistry': 0, 'Mathematics': 0 };
   let subjectQuestions = false;
-  topicsArr.forEach(t => { 
-    if(t.subject in subjMap) {
+  topicsArr.forEach(t => {
+    if (t.subject in subjMap) {
       subjMap[t.subject] += (t.questions_attempted || 0);
       subjectQuestions = true;
     }
   });
-  
-  const totalSubj = Object.values(subjMap).reduce((a,b) => a+b, 0) || 1;
-  const computedPcts = subjectQuestions 
-    ? [ Math.round((subjMap['Physics']/totalSubj)*100), Math.round((subjMap['Chemistry']/totalSubj)*100), Math.round((subjMap['Mathematics']/totalSubj)*100) ]
+
+  const totalSubj = Object.values(subjMap).reduce((a, b) => a + b, 0) || 1;
+  const computedPcts = subjectQuestions
+    ? [Math.round((subjMap['Physics'] / totalSubj) * 100), Math.round((subjMap['Chemistry'] / totalSubj) * 100), Math.round((subjMap['Mathematics'] / totalSubj) * 100)]
     : [0, 0, 0];
 
   const dynamicDoughnut = {
@@ -156,16 +156,16 @@ export default function Analytics() {
   }
 
   return (
-    <div style={{ animation:'fadeInUp 0.5s ease' }}>
+    <div style={{ animation: 'fadeInUp 0.5s ease' }}>
       <div className="grid-4 mb-3">
         {[
-          { icon:<TrendingUp size={22}/>, label:'Overall Accuracy', val:`${sumData.accuracy_percent || 0}%`, change:sumData.total_questions > 0 ? 'Dynamic' : 'New', color:'var(--primary-light)', bg:'rgba(108,99,255,0.15)' },
-          { icon:<Target size={22}/>, label:'Questions Attempted', val:sumData.total_questions || 0, change:sumData.total_questions > 0 ? 'Live Data' : 'Start now!', color:'var(--secondary)', bg:'rgba(0,212,170,0.15)' },
-          { icon:<Clock size={22}/>, label:'Avg Speed', val:`${sumData.avg_speed_seconds || 0}s/q`, change:sumData.total_questions > 0 ? 'Dynamic' : 'Unmeasured', color:'var(--warning)', bg:'rgba(255,217,61,0.15)' },
-          { icon:<Zap size={22}/>, label:'Consistency Score', val:`${sumData.consistency_score || 0}/10`, change:`Streak: ${sumData.study_streak || 0}`, color:'#b44eff', bg:'rgba(180,78,255,0.15)' },
+          { icon: <TrendingUp size={22} />, label: 'Overall Accuracy', val: `${sumData.accuracy_percent || 0}%`, change: sumData.total_questions > 0 ? 'Dynamic' : 'New', color: 'var(--primary-light)', bg: 'rgba(108,99,255,0.15)' },
+          { icon: <Target size={22} />, label: 'Questions Attempted', val: sumData.total_questions || 0, change: sumData.total_questions > 0 ? 'Live Data' : 'Start now!', color: 'var(--secondary)', bg: 'rgba(0,212,170,0.15)' },
+          { icon: <Clock size={22} />, label: 'Avg Speed', val: `${sumData.avg_speed_seconds || 0}s/q`, change: sumData.total_questions > 0 ? 'Dynamic' : 'Unmeasured', color: 'var(--warning)', bg: 'rgba(255,217,61,0.15)' },
+          { icon: <Zap size={22} />, label: 'Consistency Score', val: `${sumData.consistency_score || 0}/10`, change: `Streak: ${sumData.study_streak || 0}`, color: '#b44eff', bg: 'rgba(180,78,255,0.15)' },
         ].map(({ icon, label, val, change, color, bg }) => (
           <div key={label} className="stat-card">
-            <div className="stat-icon" style={{ background:bg, color }}>{icon}</div>
+            <div className="stat-icon" style={{ background: bg, color }}>{icon}</div>
             <div className="stat-info">
               <h3>{val}</h3>
               <p>{label}</p>
@@ -179,7 +179,7 @@ export default function Analytics() {
         <ChartCard title="📈 Accuracy Over Time" subtitle="Weekly performance trend">
           <Line data={dynamicAccuracy} options={{
             ...chartDefaults,
-            plugins: { ...chartDefaults.plugins, tooltip: { backgroundColor:'rgba(15,15,30,0.95)', borderColor:'rgba(108,99,255,0.3)', borderWidth:1 } },
+            plugins: { ...chartDefaults.plugins, tooltip: { backgroundColor: 'rgba(15,15,30,0.95)', borderColor: 'rgba(108,99,255,0.3)', borderWidth: 1 } },
             scales: axisStyles
           }} />
         </ChartCard>
@@ -187,7 +187,7 @@ export default function Analytics() {
         <ChartCard title="⚡ Response Speed" subtitle="Average seconds per question (lower = better)">
           <Line data={dynamicSpeed} options={{
             ...chartDefaults,
-            plugins: { ...chartDefaults.plugins, tooltip: { backgroundColor:'rgba(15,15,30,0.95)', borderColor:'rgba(255,217,61,0.3)', borderWidth:1 } },
+            plugins: { ...chartDefaults.plugins, tooltip: { backgroundColor: 'rgba(15,15,30,0.95)', borderColor: 'rgba(255,217,61,0.3)', borderWidth: 1 } },
             scales: axisStyles
           }} />
         </ChartCard>
@@ -197,7 +197,7 @@ export default function Analytics() {
         <ChartCard title="📊 Topic-wise Performance" subtitle="Score % across topics">
           <Bar data={dynamicTopic} options={{
             ...chartDefaults,
-            plugins: { ...chartDefaults.plugins, tooltip: { backgroundColor:'rgba(15,15,30,0.95)' } },
+            plugins: { ...chartDefaults.plugins, tooltip: { backgroundColor: 'rgba(15,15,30,0.95)' } },
             scales: axisStyles
           }} />
         </ChartCard>
@@ -217,32 +217,32 @@ export default function Analytics() {
       </div>
 
       <div className="grid-2">
-        <div className="card" style={{ padding:'1.5rem' }}>
-          <h3 style={{ fontSize:'1rem', fontWeight:'700', marginBottom:'0.2rem' }}>📚 Subject Distribution</h3>
-          <p style={{ fontSize:'0.78rem', color:'var(--text-muted)', marginBottom:'1rem' }}>Time spent per subject</p>
-          <div style={{ display:'flex', gap:'2rem', alignItems:'center' }}>
-            <div style={{ width:'160px', height:'160px', flexShrink:0 }}>
+        <div className="card" style={{ padding: '1.5rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '0.2rem' }}>📚 Subject Distribution</h3>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Time spent per subject</p>
+          <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+            <div style={{ width: '160px', height: '160px', flexShrink: 0 }}>
               <Doughnut data={dynamicDoughnut} options={{
                 ...chartDefaults,
-                plugins: { ...chartDefaults.plugins, tooltip: { backgroundColor:'rgba(15,15,30,0.95)' } },
+                plugins: { ...chartDefaults.plugins, tooltip: { backgroundColor: 'rgba(15,15,30,0.95)' } },
                 cutout: '65%'
               }} />
             </div>
-            <div style={{ flex:1 }}>
-              {['Physics','Chemistry','Mathematics'].map((s, i) => {
-                const cs = ['#6c63ff','#00d4aa','#ff6b6b']
+            <div style={{ flex: 1 }}>
+              {['Physics', 'Chemistry', 'Mathematics'].map((s, i) => {
+                const cs = ['#6c63ff', '#00d4aa', '#ff6b6b']
                 const pval = computedPcts[i];
                 return (
-                  <div key={s} style={{ marginBottom:'0.75rem' }}>
-                    <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.82rem', marginBottom:'0.3rem' }}>
-                      <span style={{ display:'flex', alignItems:'center', gap:'0.4rem' }}>
-                        <span style={{ width:'10px', height:'10px', borderRadius:'2px', background:cs[i], display:'inline-block' }} />
+                  <div key={s} style={{ marginBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.3rem' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: cs[i], display: 'inline-block' }} />
                         {s}
                       </span>
-                      <span style={{ fontWeight:'700', color:cs[i] }}>{pval}%</span>
+                      <span style={{ fontWeight: '700', color: cs[i] }}>{pval}%</span>
                     </div>
-                    <div className="progress-bar" style={{ height:'4px' }}>
-                      <div style={{ height:'100%', width:`${pval}%`, background:cs[i], borderRadius:'9999px' }} />
+                    <div className="progress-bar" style={{ height: '4px' }}>
+                      <div style={{ height: '100%', width: `${pval}%`, background: cs[i], borderRadius: '9999px' }} />
                     </div>
                   </div>
                 )
@@ -251,21 +251,23 @@ export default function Analytics() {
           </div>
         </div>
 
-        <div className="card" style={{ padding:'1.5rem' }}>
-          <h3 style={{ fontSize:'1rem', fontWeight:'700', marginBottom:'0.2rem' }}>🎯 Weak Areas to Focus On</h3>
-          <p style={{ fontSize:'0.78rem', color:'var(--text-muted)', marginBottom:'1rem' }}>AI-identified topics needing improvement</p>
+        <div className="card" style={{ padding: '1.5rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '0.2rem' }}>🎯 Weak Areas to Focus On</h3>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>AI-identified topics needing improvement</p>
           {weakArr.map(({ topic, subject, score, priority }) => {
             const pc = priority === 'High' ? 'accent' : priority === 'Medium' ? 'warning' : 'secondary'
             return (
-              <div key={topic} style={{ display:'flex', alignItems:'center', gap:'0.75rem',
-                padding:'0.65rem 0', borderBottom:'1px solid var(--border)' }}>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:'0.88rem', fontWeight:'600' }}>{topic}</div>
-                  <div style={{ fontSize:'0.72rem', color:'var(--text-muted)' }}>{subject}</div>
+              <div key={topic} style={{
+                display: 'flex', alignItems: 'center', gap: '0.75rem',
+                padding: '0.65rem 0', borderBottom: '1px solid var(--border)'
+              }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.88rem', fontWeight: '600' }}>{topic}</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{subject}</div>
                 </div>
-                <div style={{ textAlign:'right' }}>
-                  <div style={{ fontSize:'0.85rem', fontWeight:'700', color:'var(--accent)' }}>{score}%</div>
-                  <span className={`badge badge-${pc}`} style={{ fontSize:'0.66rem' }}>{priority}</span>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--accent)' }}>{score}%</div>
+                  <span className={`badge badge-${pc}`} style={{ fontSize: '0.66rem' }}>{priority}</span>
                 </div>
               </div>
             )

@@ -14,6 +14,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # Routers
+from routers.dashboard import router as dashboard_router
 from routers.auth import router as auth_router
 from routers.study_plan import router as study_plan_router
 from routers.doubt import router as doubt_router
@@ -22,21 +23,20 @@ from routers.analytics import router as analytics_router
 from routers.rank import router as rank_router
 from routers.youtube import router as youtube_router
 
-# Seed demo data on startup
-from models.db import seed_demo_user
+
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    seed_demo_user()
+    
     print("\n" + "═" * 55)
     print("  🧠 NeuroLearn AI Backend — Started Successfully!")
     print("═" * 55)
     print("  📍 API URL   : http://localhost:8000")
     print("  📖 Swagger   : http://localhost:8000/docs")
     print("  📄 ReDoc     : http://localhost:8000/redoc")
-    print("  🔑 Demo user : aryan@neurolearn.ai / demo1234")
+
     print("═" * 55 + "\n")
     yield
     # Shutdown
@@ -74,6 +74,7 @@ app.add_middleware(
 
 # ─── Routers ─────────────────────────────────────────────────────────────────
 app.include_router(auth_router)
+app.include_router(dashboard_router)
 app.include_router(study_plan_router)
 app.include_router(doubt_router)
 app.include_router(questions_router)

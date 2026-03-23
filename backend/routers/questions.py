@@ -10,6 +10,7 @@ from fastapi import APIRouter, Query, HTTPException
 from models.schemas import QuestionModel, SubmitAnswerRequest, SubmitAnswerResponse
 from models.db import record_attempt, get_weakest_topic, update_skill_on_attempt, get_user_attempts
 from services.ai_service import ai_service
+from models.db import record_attempt, get_weakest_topic, update_skill_on_attempt, get_user_attempts, update_user_xp
 
 router = APIRouter(prefix="/api/questions", tags=["Adaptive Questions"])
 
@@ -244,8 +245,12 @@ async def submit_answer(body: SubmitAnswerRequest):
             "time_taken_seconds": body.time_taken_seconds,
             "timestamp": datetime.utcnow().isoformat(),
         })
+    
+    if body.user_id and correct:
+        update_user_xp(body.user_id, xp_delta=xp_earned)
         # Adaptively tune user internal metrics natively based on result
-        current_skill = update_skill_on_attempt(body.user_id, q.subject, q.topic, correct)
+    
+    current_skill = update_skill_on_attempt(body.user_id, q.subject, q.topic, correct)
 
     return SubmitAnswerResponse(
         correct=correct,
